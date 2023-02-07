@@ -1,8 +1,8 @@
 #include <memory>
 #include <chrono>
-#include <stage.hh>
 #include <rclcpp/rclcpp.hpp>
 #include <rosgraph_msgs/msg/clock.hpp>
+#include <stage.hh>
 #include <ranger_wrapper.hpp>
 #include <camera_wrapper.hpp>
 #include <position_wrapper.hpp>
@@ -17,18 +17,15 @@ public:
 
         node_ = rclcpp::Node::make_shared("stage_ros2");
         clock_pub_ = node_->create_publisher<rosgraph_msgs::msg::Clock>("/clock", rclcpp::QoS(rclcpp::KeepLast(10)).transient_local());
-		node_->declare_parameter<bool>("gui");
-		auto gui = node_->get_parameter("gui");
-        node_->declare_parameter<std::string>("world");
-        auto world_file = node_->get_parameter("world");
+        const auto gui = node_->declare_parameter("gui", true);
+        const auto world_file = node_->declare_parameter<std::string>("world");
 
         executor_ = rclcpp::executors::SingleThreadedExecutor::make_shared();
         executor_->add_node(node_);
 
-        world_ = gui.get_value<bool>()
-            ? std::make_shared<Stg::WorldGui>(600, 400, "stage_ros2")
-            : std::make_shared<Stg::World>();
-        world_->Load(world_file.get_value<std::string>());
+        world_ = gui ? std::make_shared<Stg::WorldGui>(600, 400, "stage_ros2")
+                     : std::make_shared<Stg::World>();
+        world_->Load(world_file);
         world_->AddUpdateCallback([](Stg::World* world, void *user){
             return static_cast<StageWrapper*>(user)->world_callback(world);
         }, this);
