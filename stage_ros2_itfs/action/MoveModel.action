@@ -1,0 +1,23 @@
+# Goal:
+
+## ID of the model to move.
+string id
+
+## The trajectory to move the model along to. The headers' stamps define the (simulation) time at
+## which each pose shall be reached. The frame_ids are ignored, all coordinates are in the
+## simulation frame.
+geometry_msgs/PoseStamped[] trajectory
+---
+# Result:
+
+uint8 STATUS_SUCCESS = 0
+uint8 STATUS_CANCELED = 1
+uint8 STATUS_INVALID_ID = 2
+uint8 STATUS_INVALID_TRAJECTORY = 3
+uint8 STATUS_OVERLAPPING_TRAJECTORY = 4
+uint8 status
+---
+# Feedback:
+
+## Index of reached trajectory element.
+uint32 trajectory_index

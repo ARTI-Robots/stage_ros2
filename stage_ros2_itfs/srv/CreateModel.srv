@@ -1,0 +1,26 @@
+# Request:
+
+## Type of model to create (e.g. "position"). Defaults to "model".
+string type
+
+## Optional ID of the model to create. If empty, an ID will be generated automatically.
+string id
+
+## Initial pose. Of the orientation, only the yaw will be used.
+geometry_msgs/Pose pose
+
+## Size of the model's box.
+geometry_msgs/Vector3 size
+
+## Color of the model's box.
+std_msgs/ColorRGBA color
+---
+# Response:
+
+uint8 STATUS_SUCCESS = 0
+uint8 STATUS_INVALID_TYPE = 1
+uint8 STATUS_STAGE_ERROR = 2
+uint8 status
+
+## ID of the created model.
+string id

@@ -1,0 +1,9 @@
+# Request:
+
+## IDs of the objects to remove.
+string[] ids
+---
+# Response:
+
+## Result statuses for each given ID. For values, see RemoveModel response.
+uint8[] statuses

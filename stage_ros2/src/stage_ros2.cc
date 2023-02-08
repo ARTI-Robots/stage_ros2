@@ -1,5 +1,6 @@
 #include <memory>
 #include <chrono>
+#include <functional>
 #include <rclcpp/rclcpp.hpp>
 #include <rosgraph_msgs/msg/clock.hpp>
 #include <stage.hh>
@@ -7,6 +8,7 @@
 #include <camera_wrapper.hpp>
 #include <position_wrapper.hpp>
 #include <robot_wrapper.hpp>
+#include <model_server.hpp>
 
 class StageWrapper {
 public:
@@ -26,6 +28,7 @@ public:
         world_ = gui ? std::make_shared<Stg::WorldGui>(600, 400, "stage_ros2")
                      : std::make_shared<Stg::World>();
         world_->Load(world_file);
+        model_server_ = std::make_shared<ModelServer>(node_, world_);
         world_->AddUpdateCallback([](Stg::World* world, void *user){
             return static_cast<StageWrapper*>(user)->world_callback(world);
         }, this);
@@ -46,6 +49,7 @@ private:
     rclcpp::executors::SingleThreadedExecutor::SharedPtr executor_;
     rclcpp::Publisher<rosgraph_msgs::msg::Clock>::SharedPtr clock_pub_;
     std::shared_ptr<Stg::World> world_;
+    std::shared_ptr<ModelServer> model_server_;
     std::unordered_map<Stg::Model*, std::shared_ptr<RobotWrapper>> robots_;
 
     int search_and_init_robot(Stg::Model* mod) {

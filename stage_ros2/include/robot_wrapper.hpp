@@ -86,8 +86,8 @@ public:
                 mod->Subscribe();
                 cameras_.push_back(std::make_shared<CameraWrapper>(node_, static_cast<Stg::ModelCamera*>(mod), model_name, tf_prefix_));
             }
-            else {
-                RCLCPP_WARN_STREAM(node_->get_logger(), "sensor " << mod->GetModelType() << "is not supported");
+            else if (mod->GetModelType() != "model") {
+                RCLCPP_WARN_STREAM(node_->get_logger(), "sensor type '" << mod->GetModelType() << "' is not supported");
             }
         }
     }

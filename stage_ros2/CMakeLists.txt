@@ -28,6 +28,7 @@ find_package(image_transport REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(stage_ros2_itfs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(tf2 REQUIRED)
@@ -39,30 +40,36 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(stage REQUIRED)
 
 # build
-add_executable(stage_ros2 src/stage_ros2.cc)
+add_executable(${PROJECT_NAME}
+    src/stage_ros2.cc
+    src/model_server.cc include/model_server.hpp
+		src/utils.cc include/utils.hpp)
+
 # Add Stage dependency (the STAGE_* variables are defined by stage-config.cmake),
 # which was found by `find_package(stage REQUIRED)`.
-target_include_directories(stage_ros2
+target_include_directories(${PROJECT_NAME}
 		PRIVATE ${STAGE_INCLUDE_DIRS} include)
-target_link_libraries(stage_ros2
+target_link_libraries(${PROJECT_NAME}
 		PRIVATE ${STAGE_LIBRARIES})
 # Add dependencies on standard ROS 2 packages using ament.
-ament_target_dependencies(stage_ros2
+ament_target_dependencies(${PROJECT_NAME}
 		PUBLIC
 		rclcpp
+		rclcpp_action
 		rcutils
 		cv_bridge
 		image_transport
 		geometry_msgs
 		nav_msgs
 		sensor_msgs
+		stage_ros2_itfs
 		std_msgs
 		std_srvs
 		tf2
 		tf2_ros
 		tf2_geometry_msgs)
 
-install(TARGETS stage_ros2
+install(TARGETS ${PROJECT_NAME}
 		DESTINATION lib/${PROJECT_NAME})
 
 ament_package()
