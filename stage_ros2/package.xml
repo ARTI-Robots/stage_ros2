@@ -3,11 +3,13 @@
 <package format="3">
     <name>stage_ros2</name>
     <version>0.0.0</version>
-    <description>The ROS2 package for Stage</description>
+    <description>ROS 2 node wrapping the Stage simulator</description>
 
-    <maintainer email="world.applepie@gmail.com">ymd-stella</maintainer>
+    <maintainer email="a.buchegger@arti-robots.com">Alexander Buchegger</maintainer>
+    <author email="a.buchegger@arti-robots.com">Alexander Buchegger</author>
+    <author email="world.applepie@gmail.com">ymd-stella</author>
 
-    <license>MIT</license>
+    <license>GPL</license>
 
     <buildtool_depend>ament_cmake</buildtool_depend>
 

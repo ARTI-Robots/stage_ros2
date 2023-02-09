@@ -1,18 +1,45 @@
-#include <memory>
+/*
+ *  stage_ros2: ROS 2 node wrapping the Stage simulator.
+ *
+ *  Copyright (C) 2023 ARTI - Autonomous Robot Technology GmbH
+ *  Copyright (C) 2020 ymd-stella
+ *  Copyright (C) 2001-2009 Richard Vaughan, Brian Gerkey, Andrew
+ *  Howard, Toby Collett, Reed Hedges, Alex Couture-Beil, Jeremy
+ *  Asher, Pooya Karimian
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ */
+
 #include <chrono>
 #include <functional>
+#include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include <rosgraph_msgs/msg/clock.hpp>
 #include <stage.hh>
-#include <ranger_wrapper.hpp>
-#include <camera_wrapper.hpp>
-#include <position_wrapper.hpp>
-#include <robot_wrapper.hpp>
-#include <model_server.hpp>
+#include <stage_ros2/camera_wrapper.hpp>
+#include <stage_ros2/model_server.hpp>
+#include <stage_ros2/position_wrapper.hpp>
+#include <stage_ros2/ranger_wrapper.hpp>
+#include <stage_ros2/robot_wrapper.hpp>
+
+namespace stage_ros2 {
 
 class StageWrapper {
 public:
-    void init(int argc, char** argv) {
+    bool init(int argc, char** argv) {
         rclcpp::init(argc, argv);
         rclcpp::uninstall_signal_handlers();
         Stg::Init(&argc, &argv);
@@ -27,7 +54,12 @@ public:
 
         world_ = gui ? std::make_shared<Stg::WorldGui>(600, 400, "stage_ros2")
                      : std::make_shared<Stg::World>();
-        world_->Load(world_file);
+        if (!world_->Load(world_file)) {
+            RCLCPP_ERROR_STREAM(node_->get_logger(),
+                                "failed to load world file '" << world_file << "'");
+            return false;
+        }
+
         model_server_ = std::make_shared<ModelServer>(node_, world_);
         world_->AddUpdateCallback([](Stg::World* world, void *user){
             return static_cast<StageWrapper*>(user)->world_callback(world);
@@ -37,6 +69,7 @@ public:
         }, this);
         world_->Start();
         ros2_thread_ = std::make_shared<std::thread>([this](){ executor_->spin(); });
+        return true;
     }
 
     ~StageWrapper() {
@@ -55,7 +88,7 @@ private:
     int search_and_init_robot(Stg::Model* mod) {
         RCLCPP_DEBUG_STREAM(node_->get_logger(), "[search robots] token: " << mod->Token() << ", type: " << mod->GetModelType());
         if (mod->GetModelType() == "position") {
-            robots_[mod] = std::make_shared<RobotWrapper>(executor_, mod->Token());
+            robots_[mod] = std::make_shared<RobotWrapper>(node_, mod->Token());
             robots_[mod]->wrap(mod);
             mod->ForEachDescendant([](Stg::Model* mod, void* user){
                 return static_cast<StageWrapper*>(user)->search_and_init_sensor(mod);
@@ -86,9 +119,13 @@ private:
     }
 };
 
+}
+
 int main(int argc, char** argv) {
-    StageWrapper stage_wrapper;
-    stage_wrapper.init(argc, argv);
+    stage_ros2::StageWrapper stage_wrapper;
+    if (!stage_wrapper.init(argc, argv)) {
+        return 1;
+    }
     Stg::World::Run();
     return 0;
 }

@@ -1,4 +1,29 @@
-#include "utils.hpp"
+/*
+ *  stage_ros2: ROS 2 node wrapping the Stage simulator.
+ *
+ *  Copyright (C) 2023 ARTI - Autonomous Robot Technology GmbH
+ *  Copyright (C) 2020 ymd-stella
+ *  Copyright (C) 2001-2009 Richard Vaughan, Brian Gerkey, Andrew
+ *  Howard, Toby Collett, Reed Hedges, Alex Couture-Beil, Jeremy
+ *  Asher, Pooya Karimian
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ */
+
+#include <stage_ros2/utils.hpp>
 #include <tf2/utils.h>
 // see CMakeLists.txt
 #ifdef USE_LEGACY_MSGS_INCLUDE
@@ -8,8 +33,8 @@
 #endif
 #include <stage.hh>
 
-namespace utils
-{
+namespace stage_ros2 {
+namespace utils {
 
 rclcpp::Time to_ros_time(Stg::usec_t stage_time) {
   return rclcpp::Time{static_cast<int64_t>(stage_time * 1000), RCL_ROS_TIME};
@@ -53,4 +78,5 @@ Stg::Ancestor *get_parent(const Stg::Model *model) {
   return model->GetWorld();
 }
 
+}
 }

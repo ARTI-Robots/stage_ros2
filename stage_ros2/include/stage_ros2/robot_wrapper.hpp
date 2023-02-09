@@ -1,15 +1,41 @@
 #pragma once
+/*
+ *  stage_ros2: ROS 2 node wrapping the Stage simulator.
+ *
+ *  Copyright (C) 2023 ARTI - Autonomous Robot Technology GmbH
+ *  Copyright (C) 2020 ymd-stella
+ *  Copyright (C) 2001-2009 Richard Vaughan, Brian Gerkey, Andrew
+ *  Howard, Toby Collett, Reed Hedges, Alex Couture-Beil, Jeremy
+ *  Asher, Pooya Karimian
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ */
+
 #include <mutex>
 #include <stage.hh>
 #include <rclcpp/rclcpp.hpp>
 #include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <geometry_msgs/msg/twist.hpp>
-#include <ranger_wrapper.hpp>
-#include <camera_wrapper.hpp>
-#include <position_wrapper.hpp>
+#include "ranger_wrapper.hpp"
+#include "camera_wrapper.hpp"
+#include "position_wrapper.hpp"
 
-namespace {
+namespace stage_ros2 {
+
 void replaceAll(std::string& str, const std::string& from, const std::string& to) {
     if(from.empty())
         return;
@@ -19,19 +45,17 @@ void replaceAll(std::string& str, const std::string& from, const std::string& to
         start_pos += to.length();
     }
 }
-}
 
 class RobotWrapper
 {
 public:
-    RobotWrapper(const rclcpp::executors::SingleThreadedExecutor::SharedPtr& executor, std::string name) {
+    RobotWrapper(const rclcpp::Node::SharedPtr& node, const std::string& name) {
         tf_prefix_ = name;
-        node_ = rclcpp::Node::make_shared(name, "stage_ros2");
+        node_ = node->create_sub_node(node->get_name())->create_sub_node(name);
         tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(node_);
         cmd_vel_sub_ = node_->create_subscription<geometry_msgs::msg::Twist>(
-            "~/cmd_vel", rclcpp::QoS(rclcpp::KeepLast(1)),
+            "cmd_vel", rclcpp::QoS(rclcpp::KeepLast(1)),
             std::bind(&RobotWrapper::cmd_vel_callback, this, std::placeholders::_1));
-        executor->add_node(node_);
     }
 
     void cmd_vel_callback(const geometry_msgs::msg::Twist::SharedPtr msg) {
@@ -101,3 +125,5 @@ public:
     std::vector<std::shared_ptr<RangerWrapper>> rangers_;
     rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
 };
+
+}

@@ -41,9 +41,14 @@ find_package(stage REQUIRED)
 
 # build
 add_executable(${PROJECT_NAME}
-    src/stage_ros2.cc
-    src/model_server.cc include/model_server.hpp
-		src/utils.cc include/utils.hpp)
+		include/stage_ros2/camera_wrapper.hpp
+		src/model_server.cc include/stage_ros2/model_server.hpp
+		include/stage_ros2/position_wrapper.hpp
+		include/stage_ros2/ranger_wrapper.hpp
+		include/stage_ros2/robot_wrapper.hpp
+		include/stage_ros2/stage_forward_declarations.hpp
+		src/stage_ros2.cc
+		src/utils.cc include/stage_ros2/utils.hpp)
 
 # Add Stage dependency (the STAGE_* variables are defined by stage-config.cmake),
 # which was found by `find_package(stage REQUIRED)`.

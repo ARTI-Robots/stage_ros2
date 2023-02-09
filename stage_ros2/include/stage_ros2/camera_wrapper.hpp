@@ -1,10 +1,45 @@
 #pragma once
+/*
+ *  stage_ros2: ROS 2 node wrapping the Stage simulator.
+ *
+ *  Copyright (C) 2023 ARTI - Autonomous Robot Technology GmbH
+ *  Copyright (C) 2020 ymd-stella
+ *  Copyright (C) 2001-2009 Richard Vaughan, Brian Gerkey, Andrew
+ *  Howard, Toby Collett, Reed Hedges, Alex Couture-Beil, Jeremy
+ *  Asher, Pooya Karimian
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *
+ */
+
 #include <limits>
 #include <stage.hh>
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <sensor_msgs/image_encodings.hpp>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_ros/transform_broadcaster.h>
+// see CMakeLists.txt
+#ifdef USE_LEGACY_MSGS_INCLUDE
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#else
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#endif
+
+namespace stage_ros2 {
 
 class CameraWrapper
 {
@@ -20,9 +55,9 @@ public:
         if (tf_prefix.size() > 0) {
             frame_id_ = tf_prefix + "/" + frame_id_;
         }
-        camera_info_pub_ = node->create_publisher<sensor_msgs::msg::CameraInfo>(std::string("~/") + name + "/camera_info", 10);
-        image_pub_ = node->create_publisher<sensor_msgs::msg::Image>(std::string("~/") + name + "/image_raw", 10);
-        depth_pub_ = node->create_publisher<sensor_msgs::msg::Image>(std::string("~/") + name + "/depth", 10);
+        camera_info_pub_ = node->create_publisher<sensor_msgs::msg::CameraInfo>(name + "/camera_info", 10);
+        image_pub_ = node->create_publisher<sensor_msgs::msg::Image>(name + "/image_raw", 10);
+        depth_pub_ = node->create_publisher<sensor_msgs::msg::Image>(name + "/depth", 10);
         // TODO: verify that get_parameter_or really works
         node->get_parameter_or("is_depth_canonical", is_depth_canonical_, true);
     }
@@ -154,7 +189,7 @@ public:
         transform.transform.translation.x = p.x;
         transform.transform.translation.y = p.y;
         transform.transform.translation.z = p.z;
-        transform.transform.rotation = toMsg(q);
+        transform.transform.rotation = tf2::toMsg(q);
         tf_broadcaster->sendTransform(transform);
     }
 
@@ -166,3 +201,5 @@ public:
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr image_pub_;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr depth_pub_;
 };
+
+}

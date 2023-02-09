@@ -3,9 +3,11 @@
 <package format="3">
   <name>stage_ros2_itfs</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="a.buchegger@arti-robots.com">abuchegger</maintainer>
-  <license>TODO: License declaration</license>
+  <description>ROS 2 interfaces for the stage_ros2 package</description>
+  <license>BSD</license>
+
+  <maintainer email="a.buchegger@arti-robots.com">Alexander Buchegger</maintainer>
+  <author email="a.buchegger@arti-robots.com">Alexander Buchegger</author>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
