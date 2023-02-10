@@ -58,12 +58,14 @@ protected:
                     const RemoveModel::Response::SharedPtr &response);
   void remove_models(const RemoveModels::Request::ConstSharedPtr &request,
                      const RemoveModels::Response::SharedPtr &response);
-  void execute_move_model_goal(const MoveModelGoalHandleSharedPtr &goal_handle);
+  void move_model(const MoveModelGoalHandleSharedPtr &goal_handle);
 
   RemoveModelStatus do_remove_model(const std::string &id) const;
-  bool validate_trajectory(const MoveModel::Goal::_trajectory_type &trajectory) const;
+  bool validate_trajectory(const MoveModel::Goal &move_model_goal) const;
+  static rclcpp::Time get_end_time(const MoveModel::Goal &move_model_goal);
   void enqueue_control_callback();
   void control();
+  void control_model(Stg::Model *model, MoveModelGoalHandleQueue& goal_handle_queue) const;
 
   rclcpp::Node::SharedPtr node_;
   std::shared_ptr<Stg::World> world_;

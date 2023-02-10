@@ -53,7 +53,7 @@ public:
             frame_id_ = tf_prefix + "/" + frame_id_;
         }
         laser_scan_pub_ = node->create_publisher<sensor_msgs::msg::LaserScan>(name, 10);
-        is_sonar = model_->GetSensors()[0].sample_count == 1;
+        is_sonar = model_->GetSensors().at(0).sample_count == 1;
         if (is_sonar) {
             RCLCPP_WARN_STREAM(node->get_logger(), "sonar is not supported");
         }
@@ -63,20 +63,15 @@ public:
         if (is_sonar) {
             return;
         }
-        auto sensor = model_->GetSensors()[0];
+        const auto& sensor = model_->GetSensors().at(0);
         sensor_msgs::msg::LaserScan msg;
         msg.angle_max = sensor.fov / 2.0;
         msg.angle_min = -sensor.fov / 2.0;
         msg.angle_increment = sensor.fov / (double)(sensor.sample_count - 1);
         msg.range_max = sensor.range.max;
         msg.range_min = sensor.range.min;
-        msg.ranges.resize(sensor.ranges.size());
-        msg.intensities.resize(sensor.intensities.size());
-        for(unsigned int i = 0; i < sensor.ranges.size(); i++)
-        {
-            msg.ranges[i] = sensor.ranges[i];
-            msg.intensities[i] = sensor.intensities[i];
-        }
+        msg.ranges.assign(sensor.ranges.begin(), sensor.ranges.end());
+        msg.intensities.assign(sensor.intensities.begin(), sensor.intensities.end());
         msg.header.frame_id = frame_id_;
         msg.header.stamp = now;
         laser_scan_pub_->publish(msg);

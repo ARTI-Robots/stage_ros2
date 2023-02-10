@@ -46,7 +46,7 @@ ModelServer::ModelServer(rclcpp::Node::SharedPtr node, std::shared_ptr<Stg::Worl
           node_, "~/move_model",
           [](...) { return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE; },
           [](...) { return rclcpp_action::CancelResponse::ACCEPT; },
-          std::bind(&ModelServer::execute_move_model_goal, this, phs::_1))) {
+          std::bind(&ModelServer::move_model, this, phs::_1))) {
   enqueue_control_callback();
 }
 
@@ -98,7 +98,7 @@ void ModelServer::remove_models(const RemoveModels::Request::ConstSharedPtr &req
   }
 }
 
-void ModelServer::execute_move_model_goal(const MoveModelGoalHandleSharedPtr &goal_handle) {
+void ModelServer::move_model(const MoveModelGoalHandleSharedPtr &goal_handle) {
   const auto goal = goal_handle->get_goal();
   Stg::Model *const model = world_->GetModel(goal->id);
   if (model == nullptr) {
@@ -109,8 +109,7 @@ void ModelServer::execute_move_model_goal(const MoveModelGoalHandleSharedPtr &go
     return;
   }
 
-  if (!validate_trajectory(goal->trajectory)) {
-    RCLCPP_ERROR(node_->get_logger(), "invalid trajectory for model '%s'", goal->id.c_str());
+  if (!validate_trajectory(*goal)) {
     const auto result = std::make_shared<MoveModel::Result>();
     result->status = MoveModel::Result::STATUS_INVALID_TRAJECTORY;
     goal_handle->abort(result);
@@ -119,7 +118,7 @@ void ModelServer::execute_move_model_goal(const MoveModelGoalHandleSharedPtr &go
 
   const rclcpp::Time start_time{goal->trajectory.front().header.stamp};
   MoveModelGoalHandleQueue &q = move_action_goal_handle_queues_by_model_id_[goal->id];
-  if (!q.empty() && start_time < q.back()->get_goal()->trajectory.back().header.stamp) {
+  if (!q.empty() && start_time < get_end_time(*q.back()->get_goal())) {
     RCLCPP_ERROR(node_->get_logger(),
                  "trajectory for model '%s' is overlapping previous one in queue",
                  goal->id.c_str());
@@ -151,25 +150,39 @@ ModelServer::RemoveModelStatus ModelServer::do_remove_model(const std::string &i
   return stage_ros2_itfs::srv::RemoveModel::Response::STATUS_SUCCESS;
 }
 
-bool ModelServer::validate_trajectory(const MoveModel::Goal::_trajectory_type &trajectory) const {
+bool ModelServer::validate_trajectory(const MoveModel::Goal &move_model_goal) const {
+  const auto &trajectory = move_model_goal.trajectory;
   if (trajectory.empty()) {
-    RCLCPP_ERROR(node_->get_logger(), "trajectory is empty");
-    return false;
-  }
-
-  if (trajectory.front().header.stamp == rclcpp::Time{}) {
-    RCLCPP_ERROR(node_->get_logger(), "trajectory contains zero timestamps");
+    RCLCPP_ERROR(node_->get_logger(), "trajectory for model '%s' is empty",
+                 move_model_goal.id.c_str());
     return false;
   }
 
   for (size_t i = 0; i < (trajectory.size() - 1); ++i) {
-    if (!(rclcpp::Time{trajectory[i].header.stamp} < trajectory[i + 1].header.stamp)) {
-      RCLCPP_ERROR(node_->get_logger(), "trajectory does not have strictly increasing timestamps");
+    if (rclcpp::Time{trajectory[i + 1].header.stamp} <= trajectory[i].header.stamp) {
+      RCLCPP_ERROR(node_->get_logger(),
+                   "trajectory for model '%s' does not have strictly increasing timestamps",
+                   move_model_goal.id.c_str());
       return false;
     }
   }
 
   return true;
+}
+
+rclcpp::Time ModelServer::get_end_time(const MoveModel::Goal &move_model_goal) {
+  if (move_model_goal.iterations == MoveModel::Goal::ITERATIONS_INFINITE) {
+    return rclcpp::Time{rclcpp::Time::max(), RCL_ROS_TIME};
+  }
+
+  const rclcpp::Time end_time{move_model_goal.trajectory.back().header.stamp};
+  if (move_model_goal.iterations <= 1) {
+    return end_time;
+  }
+
+  const rclcpp::Time start_time{move_model_goal.trajectory.front().header.stamp};
+  const auto total_duration = (end_time - start_time).nanoseconds() * move_model_goal.iterations;
+  return start_time + rclcpp::Duration::from_nanoseconds(total_duration);
 }
 
 void ModelServer::enqueue_control_callback() {
@@ -184,75 +197,11 @@ void ModelServer::control() {
   // Enqueue callback for next update cycle:
   enqueue_control_callback();
 
-  const rclcpp::Time now = utils::to_ros_time(world_->SimTimeNow());
-
   for (auto entry = move_action_goal_handle_queues_by_model_id_.begin();
        entry != move_action_goal_handle_queues_by_model_id_.end();) {
     Stg::Model *const model = world_->GetModel(entry->first);
     if (model != nullptr) {
-      while (!entry->second.empty()) {
-        MoveModelGoalHandleSharedPtr goal_handle = entry->second.front();
-        if (goal_handle->is_canceling()) {
-          RCLCPP_INFO(node_->get_logger(), "canceled movement goal '%s' of model '%s'",
-                      rclcpp_action::to_string(goal_handle->get_goal_id()).c_str(),
-                      entry->first.c_str());
-          const auto result = std::make_shared<MoveModel::Result>();
-          result->status = MoveModel::Result::STATUS_CANCELED;
-          goal_handle->canceled(result);
-          entry->second.pop();
-          // Continuing with next goal, if present.
-        } else {
-          const MoveModel::Goal::ConstSharedPtr goal = goal_handle->get_goal();
-
-          if (now < goal->trajectory.front().header.stamp) {
-            // Nothing to do here yet.
-            break;
-          }
-
-          if (now < goal->trajectory.back().header.stamp) {
-            size_t trajectory_index = 0;
-            for (size_t i = 1; i < (goal->trajectory.size() - 1); ++i) {
-              if (now < goal->trajectory[i].header.stamp) {
-                break;
-              }
-              trajectory_index = i;
-            }
-
-            const Stg::Pose pose_a = utils::to_stage_pose(goal->trajectory[trajectory_index].pose);
-            const rclcpp::Time stamp_a{goal->trajectory[trajectory_index].header.stamp};
-            const Stg::Pose pose_b
-                = utils::to_stage_pose(goal->trajectory[trajectory_index + 1].pose);
-            const rclcpp::Time stamp_b{goal->trajectory[trajectory_index + 1].header.stamp};
-            const double f_b = (now - stamp_a).seconds() / (stamp_b - stamp_a).seconds();
-            const double f_a = 1.0 - f_b;
-            const double yaw_diff = Stg::normalize(pose_b.a - pose_a.a);
-
-            model->SetPose(Stg::Pose{pose_a.x * f_a + pose_b.x * f_b,
-                                     pose_a.y * f_a + pose_b.y * f_b,
-                                     pose_a.z * f_a + pose_b.z * f_b,
-                                     pose_a.a + yaw_diff * f_b});
-
-            const auto feedback = std::make_shared<MoveModel::Feedback>();
-            feedback->trajectory_index = trajectory_index;
-            goal_handle->publish_feedback(feedback);
-
-            // Finished with this model and its queue.
-            break;
-          }
-
-          // Reached the end of this trajectory.
-          model->SetPose(utils::to_stage_pose(goal->trajectory.back().pose));
-
-          const auto feedback = std::make_shared<MoveModel::Feedback>();
-          feedback->trajectory_index = goal->trajectory.size() - 1;
-          goal_handle->publish_feedback(feedback);
-
-          goal_handle->succeed(std::make_shared<MoveModel::Result>());
-          entry->second.pop();
-          // Continuing with next goal, if present.
-        }
-      }
-
+      control_model(model, entry->second);
       ++entry;
     } else {
       if (!entry->second.empty()) {
@@ -266,6 +215,86 @@ void ModelServer::control() {
       }
 
       entry = move_action_goal_handle_queues_by_model_id_.erase(entry);
+    }
+  }
+}
+
+void ModelServer::control_model(Stg::Model *const model,
+                                MoveModelGoalHandleQueue &goal_handle_queue) const {
+  const rclcpp::Time now = utils::to_ros_time(world_->SimTimeNow());
+
+  while (!goal_handle_queue.empty()) {
+    MoveModelGoalHandleSharedPtr goal_handle = goal_handle_queue.front();
+    const MoveModel::Goal::ConstSharedPtr goal = goal_handle->get_goal();
+
+    if (goal_handle->is_canceling()) {
+      RCLCPP_INFO(node_->get_logger(), "canceled movement of model '%s'", goal->id.c_str());
+      const auto result = std::make_shared<MoveModel::Result>();
+      result->status = MoveModel::Result::STATUS_CANCELED;
+      goal_handle->canceled(result);
+      goal_handle_queue.pop();
+      // Continuing with next goal, if present.
+    } else {
+      if (now < goal->trajectory.front().header.stamp) {
+        // Nothing to do here yet.
+        break;
+      }
+
+      if (now < get_end_time(*goal)) {
+        rcl_duration_value_t iteration = 0;
+        rclcpp::Time now_wrt_iteration = now;
+        if (1 < goal->iterations) {
+          const rclcpp::Time start_time{goal->trajectory.front().header.stamp};
+          const rclcpp::Time end_time{goal->trajectory.back().header.stamp};
+          const auto duration_per_iteration = (end_time - start_time).nanoseconds();
+          iteration = (now - start_time).nanoseconds() / duration_per_iteration;
+          now_wrt_iteration
+              -= rclcpp::Duration::from_nanoseconds(duration_per_iteration * iteration);
+        }
+
+        size_t trajectory_index = 0;
+        for (size_t i = 1; i < (goal->trajectory.size() - 1); ++i) {
+          if (now_wrt_iteration < goal->trajectory[i].header.stamp) {
+            break;
+          }
+          trajectory_index = i;
+        }
+
+        const Stg::Pose pose_a = utils::to_stage_pose(goal->trajectory[trajectory_index].pose);
+        const rclcpp::Time stamp_a{goal->trajectory[trajectory_index].header.stamp};
+        const Stg::Pose pose_b
+            = utils::to_stage_pose(goal->trajectory[trajectory_index + 1].pose);
+        const rclcpp::Time stamp_b{goal->trajectory[trajectory_index + 1].header.stamp};
+        const double f_b = (now_wrt_iteration - stamp_a).seconds() / (stamp_b - stamp_a).seconds();
+        const double f_a = 1.0 - f_b;
+        const double yaw_diff = Stg::normalize(pose_b.a - pose_a.a);
+
+        model->SetPose(Stg::Pose{pose_a.x * f_a + pose_b.x * f_b,
+                                 pose_a.y * f_a + pose_b.y * f_b,
+                                 pose_a.z * f_a + pose_b.z * f_b,
+                                 pose_a.a + yaw_diff * f_b});
+
+        const auto feedback = std::make_shared<MoveModel::Feedback>();
+        feedback->iteration = iteration;
+        feedback->trajectory_index = trajectory_index;
+        goal_handle->publish_feedback(feedback);
+
+        // Finished with this model and its queue.
+        break;
+      }
+
+      // Reached the end of this trajectory.
+      model->SetPose(utils::to_stage_pose(goal->trajectory.back().pose));
+
+      const auto feedback = std::make_shared<MoveModel::Feedback>();
+      feedback->iteration = goal->iterations - 1;
+      feedback->trajectory_index = goal->trajectory.size() - 1;
+      goal_handle->publish_feedback(feedback);
+
+      RCLCPP_INFO(node_->get_logger(), "finished movement of model '%s'", goal->id.c_str());
+      goal_handle->succeed(std::make_shared<MoveModel::Result>());
+      goal_handle_queue.pop();
+      // Continuing with next goal, if present.
     }
   }
 }

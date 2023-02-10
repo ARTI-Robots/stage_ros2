@@ -96,7 +96,7 @@ public:
         else {
             // token -> model_name
             std::string model_name = mod->Token();
-            auto pos_dot = model_name.find(".");
+            auto pos_dot = model_name.find('.');
             if (pos_dot != std::string::npos) {
                 model_name = model_name.substr(pos_dot + 1);
             }
