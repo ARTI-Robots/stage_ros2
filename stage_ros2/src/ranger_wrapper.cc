@@ -36,26 +36,19 @@
 namespace stage_ros2 {
 
 RangerWrapper::RangerWrapper(const rclcpp::Node::SharedPtr &node, Stg::ModelRanger *model,
-                             const std::string &name, const std::string &tf_prefix)
-    : ModelWrapper(model), model_(model) {
-  parent_frame_id_ = "base_link";
-  if (!tf_prefix.empty()) {
-    parent_frame_id_ = tf_prefix + "/" + parent_frame_id_;
-  }
-  frame_id_ = name + "/base_scan";
-  if (!tf_prefix.empty()) {
-    frame_id_ = tf_prefix + "/" + frame_id_;
-  }
-  laser_scan_pub_ = node->create_publisher<sensor_msgs::msg::LaserScan>(name, 10);
-  is_sonar = model_->GetSensors().at(0).sample_count == 1;
-  if (is_sonar) {
+                             const std::string &ns)
+    : ModelWrapper(model, ns), model_(model), parent_frame_id_(ns + "base_link"),
+      frame_id_(private_ns_ + "base_scan") {
+  laser_scan_pub_ = node->create_publisher<sensor_msgs::msg::LaserScan>(private_ns_ + "scan", 10);
+  is_sonar_ = model_->GetSensors().at(0).sample_count == 1;
+  if (is_sonar_) {
     RCLCPP_WARN_STREAM(node->get_logger(), "sonar is not supported");
   }
 }
 
 void RangerWrapper::publish(const std::shared_ptr<tf2_ros::TransformBroadcaster> &tf_broadcaster,
                             const rclcpp::Time &now) {
-  if (is_sonar) {
+  if (is_sonar_) {
     return;
   }
   const auto &sensor = model_->GetSensors().at(0);

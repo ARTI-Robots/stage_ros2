@@ -37,8 +37,7 @@ namespace stage_ros2 {
 
 class PositionWrapper : public ModelWrapper {
 public:
-  PositionWrapper(const rclcpp::Node::SharedPtr &node, Stg::ModelPosition *model,
-                  std::string tf_prefix);
+  PositionWrapper(rclcpp::Node::SharedPtr node, Stg::ModelPosition *model, const std::string &ns);
 
   void wrap_sensor(Stg::Model *model);
 
@@ -46,11 +45,10 @@ public:
                const rclcpp::Time &now) override;
 
 protected:
-  void cmd_vel_callback(const geometry_msgs::msg::Twist::ConstSharedPtr& msg);
+  void cmd_vel_callback(const geometry_msgs::msg::Twist::ConstSharedPtr &msg);
 
   rclcpp::Node::SharedPtr node_;
   Stg::ModelPosition *model_;
-  std::string tf_prefix_;
   std::vector<std::shared_ptr<ModelWrapper>> sensors_;
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
   rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr ground_truth_pub_;

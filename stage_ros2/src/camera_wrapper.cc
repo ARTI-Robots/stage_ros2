@@ -38,21 +38,14 @@
 namespace stage_ros2 {
 
 CameraWrapper::CameraWrapper(const rclcpp::Node::SharedPtr &node, Stg::ModelCamera *model,
-                             const std::string &name, const std::string &tf_prefix)
-    : ModelWrapper(model), model_(model),
-      is_depth_canonical_(node->get_parameter_or("is_depth_canonical", true)) {
-  parent_frame_id_ = "base_link";
-  if (!tf_prefix.empty()) {
-    parent_frame_id_ = tf_prefix + "/" + parent_frame_id_;
-  }
-  frame_id_ = name + "/base_camera";
-  if (!tf_prefix.empty()) {
-    frame_id_ = tf_prefix + "/" + frame_id_;
-  }
-  camera_info_pub_ =
-      node->create_publisher<sensor_msgs::msg::CameraInfo>(name + "/camera_info", 10);
-  image_pub_ = node->create_publisher<sensor_msgs::msg::Image>(name + "/image_raw", 10);
-  depth_pub_ = node->create_publisher<sensor_msgs::msg::Image>(name + "/depth", 10);
+                             const std::string &ns)
+    : ModelWrapper(model, ns), model_(model), parent_frame_id_(ns + "base_link"),
+      frame_id_(private_ns_ + "base_camera"),
+      is_depth_canonical_(node->get_parameter_or("is_depth_canonical", true)),
+      camera_info_pub_(
+          node->create_publisher<sensor_msgs::msg::CameraInfo>(private_ns_ + "camera_info", 10)),
+      image_pub_(node->create_publisher<sensor_msgs::msg::Image>(private_ns_ + "image_raw", 10)),
+      depth_pub_(node->create_publisher<sensor_msgs::msg::Image>(private_ns_ + "depth", 10)) {
 }
 
 void CameraWrapper::publish(const std::shared_ptr<tf2_ros::TransformBroadcaster> &tf_broadcaster,

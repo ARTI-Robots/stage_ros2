@@ -37,17 +37,11 @@
 namespace stage_ros2 {
 
 FiducialWrapper::FiducialWrapper(const rclcpp::Node::SharedPtr &node, Stg::ModelFiducial *model,
-                                 const std::string &name, const std::string &tf_prefix)
-    : ModelWrapper(model), model_(model) {
-  parent_frame_id_ = "base_link";
-  if (!tf_prefix.empty()) {
-    parent_frame_id_ = tf_prefix + "/" + parent_frame_id_;
-  }
-  frame_id_ = name;
-  if (!tf_prefix.empty()) {
-    frame_id_ = tf_prefix + "/" + frame_id_;
-  }
-  fiducial_pub_ = node->create_publisher<mrpt_msgs::msg::ObservationRangeBearing>(name, 10);
+                                 const std::string &ns)
+    : ModelWrapper(model, ns), model_(model), parent_frame_id_(ns + "base_link"),
+      frame_id_(private_ns_ + "base_fiducial"),
+      fiducial_pub_(node->create_publisher<mrpt_msgs::msg::ObservationRangeBearing>(
+          private_ns_ + "observations", 10)) {
 }
 
 void FiducialWrapper::publish(const std::shared_ptr<tf2_ros::TransformBroadcaster> &tf_broadcaster,

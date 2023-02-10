@@ -33,11 +33,15 @@ namespace stage_ros2 {
 
 class ModelWrapper {
 public:
-  explicit ModelWrapper(Stg::Model *model);
+  ModelWrapper(Stg::Model *model, const std::string& ns);
   virtual ~ModelWrapper();
 
   virtual void publish(const std::shared_ptr<tf2_ros::TransformBroadcaster> &tf_broadcaster,
                        const rclcpp::Time &now) = 0;
+
+protected:
+  std::string sanitized_name_;
+  std::string private_ns_;
 
 private:
   Stg::Model *model_;

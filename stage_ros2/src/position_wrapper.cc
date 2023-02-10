@@ -40,37 +40,24 @@
 
 namespace stage_ros2 {
 
-PositionWrapper::PositionWrapper(const rclcpp::Node::SharedPtr &node, Stg::ModelPosition *model,
-                                 std::string tf_prefix)
-    : ModelWrapper(model),
-      node_(node->create_sub_node(node->get_name())->create_sub_node(model->Token())),
-      model_(model), tf_prefix_(std::move(tf_prefix)),
-      odom_pub_(node_->create_publisher<nav_msgs::msg::Odometry>("odom", 10)),
-      ground_truth_pub_(node_->create_publisher<nav_msgs::msg::Odometry>("ground_truth", 10)),
+PositionWrapper::PositionWrapper(rclcpp::Node::SharedPtr node, Stg::ModelPosition *model,
+                                 const std::string &ns)
+    : ModelWrapper(model, ns), node_(std::move(node)), model_(model),
+      odom_pub_(node_->create_publisher<nav_msgs::msg::Odometry>(private_ns_ + "odom", 10)),
+      ground_truth_pub_(node_->create_publisher<nav_msgs::msg::Odometry>(
+          private_ns_ + "ground_truth", 10)),
       cmd_vel_sub_(node_->create_subscription<geometry_msgs::msg::Twist>(
-          "cmd_vel", rclcpp::QoS(rclcpp::KeepLast(1)),
+          private_ns_ + "cmd_vel", rclcpp::QoS(rclcpp::KeepLast(1)),
           std::bind(&PositionWrapper::cmd_vel_callback, this, std::placeholders::_1))) {
 }
 
 void PositionWrapper::wrap_sensor(Stg::Model *model) {
-  // token -> model_name
-  std::string model_name = model->Token();
-  const auto pos_dot = model_name.find('.');
-  if (pos_dot != std::string::npos) {
-    model_name = model_name.substr(pos_dot + 1);
-  }
-
-  std::replace(model_name.begin(), model_name.end(), ':', '_');
-
   if (const auto ranger_model = dynamic_cast<Stg::ModelRanger *>(model)) {
-    sensors_.push_back(std::make_shared<RangerWrapper>(node_, ranger_model, model_name,
-                                                       tf_prefix_));
+    sensors_.push_back(std::make_shared<RangerWrapper>(node_, ranger_model, private_ns_));
   } else if (const auto camera_model = dynamic_cast<Stg::ModelCamera *>(model)) {
-    sensors_.push_back(std::make_shared<CameraWrapper>(node_, camera_model, model_name,
-                                                       tf_prefix_));
+    sensors_.push_back(std::make_shared<CameraWrapper>(node_, camera_model, private_ns_));
   } else if (const auto fiducial_model = dynamic_cast<Stg::ModelFiducial *>(model)) {
-    sensors_.push_back(std::make_shared<FiducialWrapper>(node_, fiducial_model, model_name,
-                                                         tf_prefix_));
+    sensors_.push_back(std::make_shared<FiducialWrapper>(node_, fiducial_model, private_ns_));
   } else if (model->GetModelType() != "model") {
     RCLCPP_WARN_STREAM(node_->get_logger(),
                        "sensor type '" << model->GetModelType() << "' is not supported");
@@ -81,16 +68,9 @@ void PositionWrapper::publish(const std::shared_ptr<tf2_ros::TransformBroadcaste
                               const rclcpp::Time &now) {
   nav_msgs::msg::Odometry odom_msg;
   {
-    std::string frame_id = "odom";
-    std::string child_frame_id = "base_footprint";
-    if (!tf_prefix_.empty()) {
-      frame_id = tf_prefix_ + "/" + frame_id;
-      child_frame_id = tf_prefix_ + "/" + child_frame_id;
-    }
-
-    odom_msg.header.frame_id = frame_id;
+    odom_msg.header.frame_id = private_ns_ + "odom";
     odom_msg.header.stamp = now;
-    odom_msg.child_frame_id = child_frame_id;
+    odom_msg.child_frame_id = private_ns_ + "base_footprint";
     odom_msg.pose.pose = utils::to_pose_msg(model_->est_pose);
     odom_msg.twist.twist = utils::to_twist_msg(model_->GetVelocity());
     odom_pub_->publish(odom_msg);
@@ -98,15 +78,9 @@ void PositionWrapper::publish(const std::shared_ptr<tf2_ros::TransformBroadcaste
 
   {
     geometry_msgs::msg::TransformStamped transform;
-    std::string frame_id = "base_footprint";
-    std::string child_frame_id = "base_link";
-    if (!tf_prefix_.empty()) {
-      frame_id = tf_prefix_ + "/" + frame_id;
-      child_frame_id = tf_prefix_ + "/" + child_frame_id;
-    }
-    transform.header.frame_id = frame_id;
+    transform.header.frame_id = private_ns_ + "base_footprint";
     transform.header.stamp = now;
-    transform.child_frame_id = child_frame_id;
+    transform.child_frame_id = private_ns_ + "base_link";
     tf_broadcaster->sendTransform(transform);
   }
 

@@ -30,8 +30,9 @@
 #include <geometry_msgs/msg/twist.hpp>
 #include <geometry_msgs/msg/vector3.hpp>
 #include <rclcpp/time.hpp>
+#include <stage_ros2/stage_forward_declarations.hpp>
 #include <std_msgs/msg/color_rgba.hpp>
-#include "stage_forward_declarations.hpp"
+#include <string>
 
 namespace stage_ros2 {
 namespace utils {
@@ -51,6 +52,8 @@ Stg::Size to_stage_size(const geometry_msgs::msg::Vector3 &vector);
 Stg::Color to_stage_color(const std_msgs::msg::ColorRGBA &color);
 
 Stg::Ancestor *get_parent(const Stg::Model *model);
+
+std::string sanitize_stage_name(std::string stage_name);
 
 }
 }

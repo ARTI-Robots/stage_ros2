@@ -45,7 +45,8 @@ public:
         Stg::Init(&argc, &argv);
 
         node_ = rclcpp::Node::make_shared("stage_ros2");
-        clock_pub_ = node_->create_publisher<rosgraph_msgs::msg::Clock>("/clock", rclcpp::QoS(rclcpp::KeepLast(10)).transient_local());
+        private_ns_node_ = node_->create_sub_node(node_->get_name());
+        clock_pub_ = node_->create_publisher<rosgraph_msgs::msg::Clock>("clock", rclcpp::QoS(rclcpp::KeepLast(10)).transient_local());
         const auto gui = node_->declare_parameter("gui", true);
         const auto world_file = node_->declare_parameter<std::string>("world");
 
@@ -63,7 +64,7 @@ public:
             return false;
         }
 
-        model_server_ = std::make_shared<ModelServer>(node_, world_);
+        model_server_ = std::make_shared<ModelServer>(private_ns_node_, world_);
         world_->AddUpdateCallback([](Stg::World*, void *user){
             static_cast<StageWrapper*>(user)->world_update_callback();
             // Return false to indicate that we want to be called again (an odd convention, but
@@ -86,6 +87,7 @@ public:
 private:
     std::shared_ptr<std::thread> ros2_thread_;
     rclcpp::Node::SharedPtr node_;
+    rclcpp::Node::SharedPtr private_ns_node_;
     rclcpp::executors::SingleThreadedExecutor::SharedPtr executor_;
     std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
     std::shared_ptr<tf2_ros::StaticTransformBroadcaster> static_tf_broadcaster_;
@@ -97,7 +99,7 @@ private:
     void search_and_init_robot(Stg::Model* model) {
         RCLCPP_DEBUG_STREAM(node_->get_logger(), "[search robots] token: " << model->Token() << ", type: " << model->GetModelType());
         if (const auto position_model = dynamic_cast<Stg::ModelPosition *>(model)) {
-            robots_[model] = std::make_shared<PositionWrapper>(node_, position_model, model->Token());
+            robots_[model] = std::make_shared<PositionWrapper>(private_ns_node_, position_model, "");
         } else {
             const auto parent_robot_it = robots_.find(model->Parent());
             if (parent_robot_it != robots_.end()) {

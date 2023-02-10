@@ -37,7 +37,7 @@ namespace stage_ros2 {
 class RangerWrapper : public ModelWrapper {
 public:
   RangerWrapper(const rclcpp::Node::SharedPtr &node, Stg::ModelRanger *model,
-                const std::string &name, const std::string &tf_prefix);
+                const std::string &ns);
 
   void publish(const std::shared_ptr<tf2_ros::TransformBroadcaster> &tf_broadcaster,
                const rclcpp::Time &now) override;
@@ -47,7 +47,7 @@ protected:
   std::string parent_frame_id_;
   std::string frame_id_;
   rclcpp::Publisher<sensor_msgs::msg::LaserScan>::SharedPtr laser_scan_pub_;
-  bool is_sonar;
+  bool is_sonar_;
 };
 
 }

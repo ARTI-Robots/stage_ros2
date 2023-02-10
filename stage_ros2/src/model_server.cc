@@ -37,13 +37,14 @@ namespace phs = std::placeholders;
 ModelServer::ModelServer(rclcpp::Node::SharedPtr node, std::shared_ptr<Stg::World> world)
     : node_(std::move(node)), world_(std::move(world)),
       create_model_service_(node_->create_service<stage_ros2_itfs::srv::CreateModel>(
-          "~/create_model", std::bind(&ModelServer::create_model, this, phs::_1, phs::_2))),
+          "create_model", std::bind(&ModelServer::create_model, this, phs::_1, phs::_2))),
       remove_model_service_(node_->create_service<stage_ros2_itfs::srv::RemoveModel>(
-          "~/remove_model", std::bind(&ModelServer::remove_model, this, phs::_1, phs::_2))),
+          "remove_model", std::bind(&ModelServer::remove_model, this, phs::_1, phs::_2))),
       remove_models_service_(node_->create_service<stage_ros2_itfs::srv::RemoveModels>(
-          "~/remove_models", std::bind(&ModelServer::remove_models, this, phs::_1, phs::_2))),
+          "remove_models", std::bind(&ModelServer::remove_models, this, phs::_1, phs::_2))),
       move_model_action_server_(rclcpp_action::create_server<stage_ros2_itfs::action::MoveModel>(
-          node_, "~/move_model",
+          // ActionServer doesn't take sub-namespace into account correctly:
+          node_, node_->get_effective_namespace() + "/move_model",
           [](...) { return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE; },
           [](...) { return rclcpp_action::CancelResponse::ACCEPT; },
           std::bind(&ModelServer::move_model, this, phs::_1))) {

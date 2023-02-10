@@ -38,7 +38,7 @@ namespace stage_ros2 {
 class CameraWrapper : public ModelWrapper {
 public:
   CameraWrapper(const rclcpp::Node::SharedPtr &node, Stg::ModelCamera *model,
-                const std::string &name, const std::string &tf_prefix);
+                const std::string &ns);
 
   void publish(const std::shared_ptr<tf2_ros::TransformBroadcaster> &tf_broadcaster,
                const rclcpp::Time &now) override;

@@ -24,12 +24,14 @@
  */
 
 #include <stage_ros2/model_wrapper.hpp>
+#include <stage_ros2/utils.hpp>
 #include <stage.hh>
 
 namespace stage_ros2 {
 
-ModelWrapper::ModelWrapper(Stg::Model *const model)
-    : model_(model) {
+ModelWrapper::ModelWrapper(Stg::Model *const model, const std::string &ns)
+    : sanitized_name_(utils::sanitize_stage_name(model->TokenStr())),
+      private_ns_(ns + sanitized_name_ + '/'), model_(model) {
   model_->Subscribe();
 }
 

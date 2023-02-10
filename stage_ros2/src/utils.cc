@@ -87,5 +87,16 @@ Stg::Ancestor *get_parent(const Stg::Model *model) {
   return model->GetWorld();
 }
 
+std::string sanitize_stage_name(std::string stage_name)
+{
+  const auto pos_dot = stage_name.find('.');
+  if (pos_dot != std::string::npos) {
+    stage_name.erase(0, pos_dot + 1);
+  }
+
+  std::replace(stage_name.begin(), stage_name.end(), ':', '_');
+  return stage_name;
+}
+
 }
 }
