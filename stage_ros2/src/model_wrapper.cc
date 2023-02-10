@@ -1,4 +1,3 @@
-#pragma once
 /*
  *  stage_ros2: ROS 2 node wrapping the Stage simulator.
  *
@@ -24,35 +23,18 @@
  *
  */
 
-#include <memory>
-#include <rclcpp/rclcpp.hpp>
-#include <stage_ros2/stage_forward_declarations.hpp>
-#include <string>
-#include <tf2_ros/transform_broadcaster.h>
-#include <tf2_ros/static_transform_broadcaster.h>
-#include <vector>
+#include <stage_ros2/model_wrapper.hpp>
+#include <stage.hh>
 
 namespace stage_ros2 {
 
-class CameraWrapper;
-class PositionWrapper;
-class RangerWrapper;
+ModelWrapper::ModelWrapper(Stg::Model *const model)
+    : model_(model) {
+  model_->Subscribe();
+}
 
-class RobotWrapper {
-public:
-  RobotWrapper(const rclcpp::Node::SharedPtr &node, const std::string &name);
-
-  void publish(const rclcpp::Time &now);
-
-  void wrap(Stg::Model *mod);
-
-protected:
-  rclcpp::Node::SharedPtr node_;
-  std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
-  std::string tf_prefix_;
-  std::shared_ptr<PositionWrapper> position_;
-  std::vector<std::shared_ptr<CameraWrapper>> cameras_;
-  std::vector<std::shared_ptr<RangerWrapper>> rangers_;
-};
+ModelWrapper::~ModelWrapper() {
+  model_->Unsubscribe();
+}
 
 }

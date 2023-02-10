@@ -24,37 +24,23 @@
  *
  */
 
-#include <geometry_msgs/msg/twist.hpp>
 #include <memory>
-#include <nav_msgs/msg/odometry.hpp>
-#include <rclcpp/rclcpp.hpp>
-#include <stage_ros2/model_wrapper.hpp>
+#include <rclcpp/time.hpp>
 #include <stage_ros2/stage_forward_declarations.hpp>
-#include <string>
 #include <tf2_ros/transform_broadcaster.h>
 
 namespace stage_ros2 {
 
-class PositionWrapper : public ModelWrapper {
+class ModelWrapper {
 public:
-  PositionWrapper(const rclcpp::Node::SharedPtr &node, Stg::ModelPosition *model,
-                  std::string tf_prefix);
+  explicit ModelWrapper(Stg::Model *model);
+  virtual ~ModelWrapper();
 
-  void wrap_sensor(Stg::Model *model);
+  virtual void publish(const std::shared_ptr<tf2_ros::TransformBroadcaster> &tf_broadcaster,
+                       const rclcpp::Time &now) = 0;
 
-  void publish(const std::shared_ptr<tf2_ros::TransformBroadcaster> &tf_broadcaster,
-               const rclcpp::Time &now) override;
-
-protected:
-  void cmd_vel_callback(const geometry_msgs::msg::Twist::ConstSharedPtr& msg);
-
-  rclcpp::Node::SharedPtr node_;
-  Stg::ModelPosition *model_;
-  std::string tf_prefix_;
-  std::vector<std::shared_ptr<ModelWrapper>> sensors_;
-  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odom_pub_;
-  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr ground_truth_pub_;
-  rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_sub_;
+private:
+  Stg::Model *model_;
 };
 
 }

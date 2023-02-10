@@ -29,12 +29,11 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rosgraph_msgs/msg/clock.hpp>
 #include <stage.hh>
-#include <stage_ros2/camera_wrapper.hpp>
 #include <stage_ros2/model_server.hpp>
 #include <stage_ros2/position_wrapper.hpp>
-#include <stage_ros2/ranger_wrapper.hpp>
-#include <stage_ros2/robot_wrapper.hpp>
 #include <stage_ros2/utils.hpp>
+#include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/static_transform_broadcaster.h>
 
 namespace stage_ros2 {
 
@@ -52,6 +51,9 @@ public:
 
         executor_ = rclcpp::executors::SingleThreadedExecutor::make_shared();
         executor_->add_node(node_);
+
+        tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(node_);
+        static_tf_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(node_);
 
         world_ = gui ? std::make_shared<Stg::WorldGui>(600, 400, "stage_ros2")
                      : std::make_shared<Stg::World>();
@@ -85,20 +87,21 @@ private:
     std::shared_ptr<std::thread> ros2_thread_;
     rclcpp::Node::SharedPtr node_;
     rclcpp::executors::SingleThreadedExecutor::SharedPtr executor_;
+    std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
+    std::shared_ptr<tf2_ros::StaticTransformBroadcaster> static_tf_broadcaster_;
     rclcpp::Publisher<rosgraph_msgs::msg::Clock>::SharedPtr clock_pub_;
     std::shared_ptr<Stg::World> world_;
     std::shared_ptr<ModelServer> model_server_;
-    std::unordered_map<Stg::Model*, std::shared_ptr<RobotWrapper>> robots_;
+    std::unordered_map<Stg::Model*, std::shared_ptr<PositionWrapper>> robots_;
 
     void search_and_init_robot(Stg::Model* model) {
         RCLCPP_DEBUG_STREAM(node_->get_logger(), "[search robots] token: " << model->Token() << ", type: " << model->GetModelType());
-        if (model->GetModelType() == "position") {
-            robots_[model] = std::make_shared<RobotWrapper>(node_, model->Token());
-            robots_[model]->wrap(model);
+        if (const auto position_model = dynamic_cast<Stg::ModelPosition *>(model)) {
+            robots_[model] = std::make_shared<PositionWrapper>(node_, position_model, model->Token());
         } else {
             const auto parent_robot_it = robots_.find(model->Parent());
             if (parent_robot_it != robots_.end()) {
-                parent_robot_it->second->wrap(model);
+                parent_robot_it->second->wrap_sensor(model);
             }
         }
     }
@@ -110,9 +113,8 @@ private:
         clock.clock = now;
         clock_pub_->publish(clock);
 
-        for (auto& pair : robots_) {
-            auto robot = pair.second;
-            robot->publish(now);
+        for (const auto& pair : robots_) {
+            pair.second->publish(tf_broadcaster_, now);
         }
     }
 };

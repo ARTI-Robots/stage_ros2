@@ -28,19 +28,20 @@
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
+#include <stage_ros2/model_wrapper.hpp>
 #include <stage_ros2/stage_forward_declarations.hpp>
 #include <string>
 #include <tf2_ros/transform_broadcaster.h>
 
 namespace stage_ros2 {
 
-class CameraWrapper {
+class CameraWrapper : public ModelWrapper {
 public:
   CameraWrapper(const rclcpp::Node::SharedPtr &node, Stg::ModelCamera *model,
                 const std::string &name, const std::string &tf_prefix);
 
   void publish(const std::shared_ptr<tf2_ros::TransformBroadcaster> &tf_broadcaster,
-               const rclcpp::Time &now);
+               const rclcpp::Time &now) override;
 
 protected:
   void publish_image(const rclcpp::Time &now);

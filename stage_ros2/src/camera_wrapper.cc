@@ -39,7 +39,8 @@ namespace stage_ros2 {
 
 CameraWrapper::CameraWrapper(const rclcpp::Node::SharedPtr &node, Stg::ModelCamera *model,
                              const std::string &name, const std::string &tf_prefix)
-    : model_(model), is_depth_canonical_(node->get_parameter_or("is_depth_canonical", true)) {
+    : ModelWrapper(model), model_(model),
+      is_depth_canonical_(node->get_parameter_or("is_depth_canonical", true)) {
   parent_frame_id_ = "base_link";
   if (!tf_prefix.empty()) {
     parent_frame_id_ = tf_prefix + "/" + parent_frame_id_;

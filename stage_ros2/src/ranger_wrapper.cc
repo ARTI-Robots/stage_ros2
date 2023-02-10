@@ -35,15 +35,15 @@
 
 namespace stage_ros2 {
 
-RangerWrapper::RangerWrapper(const rclcpp::Node::SharedPtr& node, Stg::ModelRanger* model, const std::string& name, const std::string& tf_prefix)
-    :model_(model)
-{
+RangerWrapper::RangerWrapper(const rclcpp::Node::SharedPtr &node, Stg::ModelRanger *model,
+                             const std::string &name, const std::string &tf_prefix)
+    : ModelWrapper(model), model_(model) {
   parent_frame_id_ = "base_link";
-  if (tf_prefix.size() > 0) {
+  if (!tf_prefix.empty()) {
     parent_frame_id_ = tf_prefix + "/" + parent_frame_id_;
   }
   frame_id_ = name + "/base_scan";
-  if (tf_prefix.size() > 0) {
+  if (!tf_prefix.empty()) {
     frame_id_ = tf_prefix + "/" + frame_id_;
   }
   laser_scan_pub_ = node->create_publisher<sensor_msgs::msg::LaserScan>(name, 10);
@@ -53,11 +53,12 @@ RangerWrapper::RangerWrapper(const rclcpp::Node::SharedPtr& node, Stg::ModelRang
   }
 }
 
-void RangerWrapper::publish(const std::shared_ptr<tf2_ros::TransformBroadcaster>& tf_broadcaster, const rclcpp::Time& now) {
+void RangerWrapper::publish(const std::shared_ptr<tf2_ros::TransformBroadcaster> &tf_broadcaster,
+                            const rclcpp::Time &now) {
   if (is_sonar) {
     return;
   }
-  const auto& sensor = model_->GetSensors().at(0);
+  const auto &sensor = model_->GetSensors().at(0);
   sensor_msgs::msg::LaserScan msg;
   msg.angle_max = sensor.fov / 2.0;
   msg.angle_min = -sensor.fov / 2.0;

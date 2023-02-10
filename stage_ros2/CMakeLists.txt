@@ -41,40 +41,40 @@ find_package(stage REQUIRED)
 
 # build
 add_executable(${PROJECT_NAME}
-		src/camera_wrapper.cc include/stage_ros2/camera_wrapper.hpp
-		src/model_server.cc include/stage_ros2/model_server.hpp
-		src/position_wrapper.cc include/stage_ros2/position_wrapper.hpp
-		src/ranger_wrapper.cc include/stage_ros2/ranger_wrapper.hpp
-		src/robot_wrapper.cc include/stage_ros2/robot_wrapper.hpp
-		include/stage_ros2/stage_forward_declarations.hpp
-		src/stage_ros2.cc
-		src/utils.cc include/stage_ros2/utils.hpp)
+    src/camera_wrapper.cc include/stage_ros2/camera_wrapper.hpp
+    src/model_server.cc include/stage_ros2/model_server.hpp
+    src/model_wrapper.cc include/stage_ros2/model_wrapper.hpp
+    src/position_wrapper.cc include/stage_ros2/position_wrapper.hpp
+    src/ranger_wrapper.cc include/stage_ros2/ranger_wrapper.hpp
+    include/stage_ros2/stage_forward_declarations.hpp
+    src/stage_ros2.cc
+    src/utils.cc include/stage_ros2/utils.hpp)
 
 # Add Stage dependency (the STAGE_* variables are defined by stage-config.cmake),
 # which was found by `find_package(stage REQUIRED)`.
 target_include_directories(${PROJECT_NAME}
-		PRIVATE ${STAGE_INCLUDE_DIRS} include)
+    PRIVATE ${STAGE_INCLUDE_DIRS} include)
 target_link_libraries(${PROJECT_NAME}
-		PRIVATE ${STAGE_LIBRARIES})
+    PRIVATE ${STAGE_LIBRARIES})
 # Add dependencies on standard ROS 2 packages using ament.
 ament_target_dependencies(${PROJECT_NAME}
-		PUBLIC
-		rclcpp
-		rclcpp_action
-		rcutils
-		cv_bridge
-		image_transport
-		geometry_msgs
-		nav_msgs
-		sensor_msgs
-		stage_ros2_itfs
-		std_msgs
-		std_srvs
-		tf2
-		tf2_ros
-		tf2_geometry_msgs)
+    PUBLIC
+    rclcpp
+    rclcpp_action
+    rcutils
+    cv_bridge
+    image_transport
+    geometry_msgs
+    nav_msgs
+    sensor_msgs
+    stage_ros2_itfs
+    std_msgs
+    std_srvs
+    tf2
+    tf2_ros
+    tf2_geometry_msgs)
 
 install(TARGETS ${PROJECT_NAME}
-		DESTINATION lib/${PROJECT_NAME})
+    DESTINATION lib/${PROJECT_NAME})
 
 ament_package()

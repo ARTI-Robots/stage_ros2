@@ -24,6 +24,8 @@
  */
 
 #include <stage_ros2/position_wrapper.hpp>
+#include <stage_ros2/camera_wrapper.hpp>
+#include <stage_ros2/ranger_wrapper.hpp>
 #include <stage_ros2/utils.hpp>
 #include <utility>
 // see CMakeLists.txt
@@ -39,30 +41,70 @@ namespace stage_ros2 {
 
 PositionWrapper::PositionWrapper(const rclcpp::Node::SharedPtr &node, Stg::ModelPosition *model,
                                  std::string tf_prefix)
-    : model_(model), tf_prefix_(std::move(tf_prefix)),
-      odom_pub_(node->create_publisher<nav_msgs::msg::Odometry>("odom", 10)),
-      ground_truth_pub_(node->create_publisher<nav_msgs::msg::Odometry>("ground_truth", 10)),
-      cmd_vel_sub_(node->create_subscription<geometry_msgs::msg::Twist>(
+    : ModelWrapper(model),
+      node_(node->create_sub_node(node->get_name())->create_sub_node(model->Token())),
+      model_(model), tf_prefix_(std::move(tf_prefix)),
+      odom_pub_(node_->create_publisher<nav_msgs::msg::Odometry>("odom", 10)),
+      ground_truth_pub_(node_->create_publisher<nav_msgs::msg::Odometry>("ground_truth", 10)),
+      cmd_vel_sub_(node_->create_subscription<geometry_msgs::msg::Twist>(
           "cmd_vel", rclcpp::QoS(rclcpp::KeepLast(1)),
           std::bind(&PositionWrapper::cmd_vel_callback, this, std::placeholders::_1))) {
 }
 
-void PositionWrapper::publish(const std::shared_ptr<tf2_ros::TransformBroadcaster> &tf_broadcaster,
-                              const rclcpp::Time &now) {
-  std::string frame_id = "odom";
-  std::string child_frame_id = "base_footprint";
-  if (!tf_prefix_.empty()) {
-    frame_id = tf_prefix_ + "/" + frame_id;
-    child_frame_id = tf_prefix_ + "/" + child_frame_id;
+void PositionWrapper::wrap_sensor(Stg::Model *model) {
+  // token -> model_name
+  std::string model_name = model->Token();
+  const auto pos_dot = model_name.find('.');
+  if (pos_dot != std::string::npos) {
+    model_name = model_name.substr(pos_dot + 1);
   }
 
+  std::replace(model_name.begin(), model_name.end(), ':', '_');
+
+  if (const auto ranger_model = dynamic_cast<Stg::ModelRanger *>(model)) {
+    sensors_.push_back(std::make_shared<RangerWrapper>(node_, ranger_model, model_name,
+                                                       tf_prefix_));
+  } else if (const auto camera_model = dynamic_cast<Stg::ModelCamera *>(model)) {
+    sensors_.push_back(std::make_shared<CameraWrapper>(node_, camera_model, model_name,
+                                                       tf_prefix_));
+  } else if (model->GetModelType() != "model") {
+    RCLCPP_WARN_STREAM(node_->get_logger(),
+                       "sensor type '" << model->GetModelType() << "' is not supported");
+  }
+}
+
+void PositionWrapper::publish(const std::shared_ptr<tf2_ros::TransformBroadcaster> &tf_broadcaster,
+                              const rclcpp::Time &now) {
   nav_msgs::msg::Odometry odom_msg;
-  odom_msg.header.frame_id = frame_id;
-  odom_msg.header.stamp = now;
-  odom_msg.child_frame_id = child_frame_id;
-  odom_msg.pose.pose = utils::to_pose_msg(model_->est_pose);
-  odom_msg.twist.twist = utils::to_twist_msg(model_->GetVelocity());
-  odom_pub_->publish(odom_msg);
+  {
+    std::string frame_id = "odom";
+    std::string child_frame_id = "base_footprint";
+    if (!tf_prefix_.empty()) {
+      frame_id = tf_prefix_ + "/" + frame_id;
+      child_frame_id = tf_prefix_ + "/" + child_frame_id;
+    }
+
+    odom_msg.header.frame_id = frame_id;
+    odom_msg.header.stamp = now;
+    odom_msg.child_frame_id = child_frame_id;
+    odom_msg.pose.pose = utils::to_pose_msg(model_->est_pose);
+    odom_msg.twist.twist = utils::to_twist_msg(model_->GetVelocity());
+    odom_pub_->publish(odom_msg);
+  }
+
+  {
+    geometry_msgs::msg::TransformStamped transform;
+    std::string frame_id = "base_footprint";
+    std::string child_frame_id = "base_link";
+    if (!tf_prefix_.empty()) {
+      frame_id = tf_prefix_ + "/" + frame_id;
+      child_frame_id = tf_prefix_ + "/" + child_frame_id;
+    }
+    transform.header.frame_id = frame_id;
+    transform.header.stamp = now;
+    transform.child_frame_id = child_frame_id;
+    tf_broadcaster->sendTransform(transform);
+  }
 
   geometry_msgs::msg::TransformStamped transform;
   transform.header = odom_msg.header;
@@ -74,11 +116,14 @@ void PositionWrapper::publish(const std::shared_ptr<tf2_ros::TransformBroadcaste
   tf_broadcaster->sendTransform(transform);
 
   nav_msgs::msg::Odometry ground_truth_msg;
-  ground_truth_msg.header.frame_id = frame_id;
-  ground_truth_msg.header.stamp = now;
-  ground_truth_msg.child_frame_id = child_frame_id;
+  ground_truth_msg.header = odom_msg.header;
+  ground_truth_msg.child_frame_id = odom_msg.child_frame_id;
   ground_truth_msg.pose.pose = utils::to_pose_msg(model_->GetGlobalPose());
   ground_truth_pub_->publish(ground_truth_msg);
+
+  for (const auto &sensor : sensors_) {
+    sensor->publish(tf_broadcaster, now);
+  }
 }
 
 void PositionWrapper::cmd_vel_callback(const geometry_msgs::msg::Twist::ConstSharedPtr &msg) {
