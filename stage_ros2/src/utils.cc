@@ -61,6 +61,15 @@ geometry_msgs::msg::Transform to_transform_msg(const Stg::Pose &stage_pose) {
   return transform;
 }
 
+geometry_msgs::msg::Twist to_twist_msg(const Stg::Velocity &stage_velocity) {
+  geometry_msgs::msg::Twist twist;
+  twist.linear.x = stage_velocity.x;
+  twist.linear.y = stage_velocity.y;
+  twist.linear.z = stage_velocity.z;
+  twist.angular.z = stage_velocity.a;
+  return twist;
+}
+
 Stg::Size to_stage_size(const geometry_msgs::msg::Vector3 &vector) {
   return {vector.x, vector.y, vector.z};
 }

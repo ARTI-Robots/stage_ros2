@@ -41,11 +41,11 @@ find_package(stage REQUIRED)
 
 # build
 add_executable(${PROJECT_NAME}
-		include/stage_ros2/camera_wrapper.hpp
+		src/camera_wrapper.cc include/stage_ros2/camera_wrapper.hpp
 		src/model_server.cc include/stage_ros2/model_server.hpp
-		include/stage_ros2/position_wrapper.hpp
-		include/stage_ros2/ranger_wrapper.hpp
-		include/stage_ros2/robot_wrapper.hpp
+		src/position_wrapper.cc include/stage_ros2/position_wrapper.hpp
+		src/ranger_wrapper.cc include/stage_ros2/ranger_wrapper.hpp
+		src/robot_wrapper.cc include/stage_ros2/robot_wrapper.hpp
 		include/stage_ros2/stage_forward_declarations.hpp
 		src/stage_ros2.cc
 		src/utils.cc include/stage_ros2/utils.hpp)

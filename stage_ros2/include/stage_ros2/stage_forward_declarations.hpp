@@ -30,8 +30,13 @@ namespace Stg {
 class Ancestor;
 class Color;
 class Model;
+class ModelCamera;
+class ModelFiducial;
+class ModelPosition;
+class ModelRanger;
 class Pose;
 class Size;
+class Velocity;
 class World;
 
 }

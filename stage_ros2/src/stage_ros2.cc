@@ -34,6 +34,7 @@
 #include <stage_ros2/position_wrapper.hpp>
 #include <stage_ros2/ranger_wrapper.hpp>
 #include <stage_ros2/robot_wrapper.hpp>
+#include <stage_ros2/utils.hpp>
 
 namespace stage_ros2 {
 
@@ -61,11 +62,15 @@ public:
         }
 
         model_server_ = std::make_shared<ModelServer>(node_, world_);
-        world_->AddUpdateCallback([](Stg::World* world, void *user){
-            return static_cast<StageWrapper*>(user)->world_callback(world);
+        world_->AddUpdateCallback([](Stg::World*, void *user){
+            static_cast<StageWrapper*>(user)->world_update_callback();
+            // Return false to indicate that we want to be called again (an odd convention, but
+            // that's the way that Stage works):
+            return 0;
         }, this);
         world_->ForEachDescendant([](Stg::Model* mod, void* user){
-            return static_cast<StageWrapper*>(user)->search_and_init_robot(mod);
+            static_cast<StageWrapper*>(user)->search_and_init_robot(mod);
+            return 0;
         }, this);
         world_->Start();
         ros2_thread_ = std::make_shared<std::thread>([this](){ executor_->spin(); });
@@ -85,27 +90,23 @@ private:
     std::shared_ptr<ModelServer> model_server_;
     std::unordered_map<Stg::Model*, std::shared_ptr<RobotWrapper>> robots_;
 
-    int search_and_init_robot(Stg::Model* mod) {
-        RCLCPP_DEBUG_STREAM(node_->get_logger(), "[search robots] token: " << mod->Token() << ", type: " << mod->GetModelType());
-        if (mod->GetModelType() == "position") {
-            robots_[mod] = std::make_shared<RobotWrapper>(node_, mod->Token());
-            robots_[mod]->wrap(mod);
-            mod->ForEachDescendant([](Stg::Model* mod, void* user){
-                return static_cast<StageWrapper*>(user)->search_and_init_sensor(mod);
-            }, this);
+    void search_and_init_robot(Stg::Model* model) {
+        RCLCPP_DEBUG_STREAM(node_->get_logger(), "[search robots] token: " << model->Token() << ", type: " << model->GetModelType());
+        if (model->GetModelType() == "position") {
+            robots_[model] = std::make_shared<RobotWrapper>(node_, model->Token());
+            robots_[model]->wrap(model);
+        } else {
+            const auto parent_robot_it = robots_.find(model->Parent());
+            if (parent_robot_it != robots_.end()) {
+                parent_robot_it->second->wrap(model);
+            }
         }
-        return 0;
     }
 
-    int search_and_init_sensor(Stg::Model* mod) {
-        RCLCPP_DEBUG_STREAM(node_->get_logger(), "[search sensors] token: " << mod->Token() << ", type: " << mod->GetModelType());
-        robots_[mod->Parent()]->wrap(mod);
-        return 0;
-    }
+    void world_update_callback() {
+        const rclcpp::Time now = utils::to_ros_time(world_->SimTimeNow());
 
-    int world_callback(Stg::World* world_) {
         rosgraph_msgs::msg::Clock clock;
-        rclcpp::Time now(static_cast<int64_t>(world_->SimTimeNow() * 1e3));
         clock.clock = now;
         clock_pub_->publish(clock);
 
@@ -113,9 +114,6 @@ private:
             auto robot = pair.second;
             robot->publish(now);
         }
-        // We return false to indicate that we want to be called again (an
-        // odd convention, but that's the way that Stage works).
-        return 0;
     }
 };
 

@@ -27,6 +27,7 @@
 
 #include <geometry_msgs/msg/pose.hpp>
 #include <geometry_msgs/msg/transform.hpp>
+#include <geometry_msgs/msg/twist.hpp>
 #include <geometry_msgs/msg/vector3.hpp>
 #include <rclcpp/time.hpp>
 #include <std_msgs/msg/color_rgba.hpp>
@@ -42,6 +43,8 @@ Stg::Pose to_stage_pose(const geometry_msgs::msg::Pose &pose);
 geometry_msgs::msg::Pose to_pose_msg(const Stg::Pose &stage_pose);
 
 geometry_msgs::msg::Transform to_transform_msg(const Stg::Pose &stage_pose);
+
+geometry_msgs::msg::Twist to_twist_msg(const Stg::Velocity &stage_velocity);
 
 Stg::Size to_stage_size(const geometry_msgs::msg::Vector3 &vector);
 
