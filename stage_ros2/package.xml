@@ -7,6 +7,7 @@
 
     <maintainer email="a.buchegger@arti-robots.com">Alexander Buchegger</maintainer>
     <author email="a.buchegger@arti-robots.com">Alexander Buchegger</author>
+    <author email="a.verma@arti-robots.com">Amardeep Verma</author>
     <author email="world.applepie@gmail.com">ymd-stella</author>
 
     <license>GPL</license>
@@ -19,6 +20,7 @@
     <depend>image_transport</depend>
     <depend>cv_bridge</depend>
     <depend>geometry_msgs</depend>
+    <depend>mrpt_msgs</depend>
     <depend>nav_msgs</depend>
     <depend>sensor_msgs</depend>
     <depend>stage_ros2_itfs</depend>

@@ -25,6 +25,7 @@
 
 #include <stage_ros2/position_wrapper.hpp>
 #include <stage_ros2/camera_wrapper.hpp>
+#include <stage_ros2/fiducial_wrapper.hpp>
 #include <stage_ros2/ranger_wrapper.hpp>
 #include <stage_ros2/utils.hpp>
 #include <utility>
@@ -67,6 +68,9 @@ void PositionWrapper::wrap_sensor(Stg::Model *model) {
   } else if (const auto camera_model = dynamic_cast<Stg::ModelCamera *>(model)) {
     sensors_.push_back(std::make_shared<CameraWrapper>(node_, camera_model, model_name,
                                                        tf_prefix_));
+  } else if (const auto fiducial_model = dynamic_cast<Stg::ModelFiducial *>(model)) {
+    sensors_.push_back(std::make_shared<FiducialWrapper>(node_, fiducial_model, model_name,
+                                                         tf_prefix_));
   } else if (model->GetModelType() != "model") {
     RCLCPP_WARN_STREAM(node_->get_logger(),
                        "sensor type '" << model->GetModelType() << "' is not supported");

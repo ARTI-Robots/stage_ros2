@@ -26,6 +26,7 @@ find_package(rcutils REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(mrpt_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(stage_ros2_itfs REQUIRED)
@@ -42,6 +43,7 @@ find_package(stage REQUIRED)
 # build
 add_executable(${PROJECT_NAME}
     src/camera_wrapper.cc include/stage_ros2/camera_wrapper.hpp
+    src/fiducial_wrapper.cc include/stage_ros2/fiducial_wrapper.hpp
     src/model_server.cc include/stage_ros2/model_server.hpp
     src/model_wrapper.cc include/stage_ros2/model_wrapper.hpp
     src/position_wrapper.cc include/stage_ros2/position_wrapper.hpp
@@ -65,6 +67,7 @@ ament_target_dependencies(${PROJECT_NAME}
     cv_bridge
     image_transport
     geometry_msgs
+    mrpt_msgs
     nav_msgs
     sensor_msgs
     stage_ros2_itfs
