@@ -49,7 +49,16 @@ protected:
   using RemoveModels = stage_ros2_itfs::srv::RemoveModels;
   using MoveModel = stage_ros2_itfs::action::MoveModel;
   using MoveModelGoalHandleSharedPtr = std::shared_ptr<rclcpp_action::ServerGoalHandle<MoveModel>>;
-  using MoveModelGoalHandleQueue = std::queue<MoveModelGoalHandleSharedPtr>;
+  struct MoveModelGoalHandleQueueEntry
+  {
+    MoveModelGoalHandleQueueEntry(MoveModelGoalHandleSharedPtr _goal_handle, rclcpp::Time _reception_time)
+    : goal_handle(_goal_handle), reception_time(_reception_time)
+    { }
+
+    MoveModelGoalHandleSharedPtr goal_handle;
+    rclcpp::Time reception_time;
+  };
+  using MoveModelGoalHandleQueue = std::queue<MoveModelGoalHandleQueueEntry>;
   using MoveModelGoalHandleQueueMap = std::map<std::string, MoveModelGoalHandleQueue>;
 
   void create_model(const CreateModel::Request::ConstSharedPtr &request,
@@ -62,7 +71,11 @@ protected:
 
   RemoveModelStatus do_remove_model(const std::string &id) const;
   bool validate_trajectory(const MoveModel::Goal &move_model_goal) const;
-  static rclcpp::Time get_end_time(const MoveModel::Goal &move_model_goal);
+  static rclcpp::Time get_end_time(const MoveModel::Goal &move_model_goal, 
+    const rclcpp::Time &reception_time);
+  static rclcpp::Time get_time(const rclcpp::Time &reception_time, 
+    const MoveModel::Goal::_time_resolution_mode_type &resoultion_mode, 
+    const builtin_interfaces::msg::Time &time);
   void enqueue_control_callback();
   void control();
   void control_model(Stg::Model *model, MoveModelGoalHandleQueue& goal_handle_queue) const;

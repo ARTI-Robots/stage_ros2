@@ -3,10 +3,17 @@
 ## ID of the model to move.
 string id
 
-## The trajectory to move the model along to. The headers' stamps define the (simulation) time at
-## which each pose shall be reached. The frame_ids are ignored, all coordinates are in the
+## The trajectory to move the model along to. The headers' stamps defines the time at which each 
+## pose shall be reached. The detail how to resolve the time stamp to the simulation time is defined
+## according to the time resolution mode set The frame_ids are ignored, all coordinates are in the
 ## simulation frame.
 geometry_msgs/PoseStamped[] trajectory
+
+# the time of the timepoint is already defined in sim time
+uint8 TIME_RESOLUTION_MODE_SIM_TIME = 0
+# the time of the timepoint is defined relative to the arrival of the message
+uint8 TIME_RESOLUTION_MODE_RELATIVE_SIM_TIME = 1
+uint8 time_resolution_mode 0
 
 ## Number of iterations. Repeat indefinitely if set to the maximum possible value.
 uint32 ITERATIONS_INFINITE = 4294967295

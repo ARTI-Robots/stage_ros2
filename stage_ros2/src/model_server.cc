@@ -104,6 +104,11 @@ void ModelServer::move_model(const MoveModelGoalHandleSharedPtr &goal_handle) {
   Stg::Model *const model = world_->GetModel(goal->id);
   if (model == nullptr) {
     RCLCPP_ERROR(node_->get_logger(), "tried to move nonexistent model '%s'", goal->id.c_str());
+    for (const auto model : world_->GetAllModels())
+    {
+      RCLCPP_ERROR(node_->get_logger(), "Possible model would be '%s'", model->Token());
+    }
+
     const auto result = std::make_shared<MoveModel::Result>();
     result->status = MoveModel::Result::STATUS_INVALID_ID;
     goal_handle->abort(result);
@@ -117,9 +122,12 @@ void ModelServer::move_model(const MoveModelGoalHandleSharedPtr &goal_handle) {
     return;
   }
 
-  const rclcpp::Time start_time{goal->trajectory.front().header.stamp};
+  const rclcpp::Time now = utils::to_ros_time(world_->SimTimeNow());
+  const rclcpp::Time start_time = get_time(now, goal->time_resolution_mode, 
+    goal->trajectory.front().header.stamp);
+
   MoveModelGoalHandleQueue &q = move_action_goal_handle_queues_by_model_id_[goal->id];
-  if (!q.empty() && start_time < get_end_time(*q.back()->get_goal())) {
+  if (!q.empty() && start_time < get_end_time(*q.back().goal_handle->get_goal(), now)) {
     RCLCPP_ERROR(node_->get_logger(),
                  "trajectory for model '%s' is overlapping previous one in queue",
                  goal->id.c_str());
@@ -130,7 +138,7 @@ void ModelServer::move_model(const MoveModelGoalHandleSharedPtr &goal_handle) {
   }
 
   RCLCPP_INFO(node_->get_logger(), "accepted trajectory for model '%s'", goal->id.c_str());
-  q.push(goal_handle);
+  q.emplace(goal_handle, now);
 }
 
 ModelServer::RemoveModelStatus ModelServer::do_remove_model(const std::string &id) const {
@@ -171,19 +179,41 @@ bool ModelServer::validate_trajectory(const MoveModel::Goal &move_model_goal) co
   return true;
 }
 
-rclcpp::Time ModelServer::get_end_time(const MoveModel::Goal &move_model_goal) {
+rclcpp::Time ModelServer::get_end_time(const MoveModel::Goal &move_model_goal, const rclcpp::Time &reception_time) {
   if (move_model_goal.iterations == MoveModel::Goal::ITERATIONS_INFINITE) {
     return rclcpp::Time{rclcpp::Time::max(), RCL_ROS_TIME};
   }
 
-  const rclcpp::Time end_time{move_model_goal.trajectory.back().header.stamp};
+  const rclcpp::Time end_time = get_time(reception_time, move_model_goal.time_resolution_mode,
+    move_model_goal.trajectory.back().header.stamp);
+
   if (move_model_goal.iterations <= 1) {
     return end_time;
   }
 
-  const rclcpp::Time start_time{move_model_goal.trajectory.front().header.stamp};
+  const rclcpp::Time start_time = get_time(reception_time, move_model_goal.time_resolution_mode,
+    move_model_goal.trajectory.front().header.stamp);
+
   const auto total_duration = (end_time - start_time).nanoseconds() * move_model_goal.iterations;
   return start_time + rclcpp::Duration::from_nanoseconds(total_duration);
+}
+
+rclcpp::Time ModelServer::get_time(const rclcpp::Time &reception_time, 
+  const MoveModel::Goal::_time_resolution_mode_type &resoultion_mode,
+  const builtin_interfaces::msg::Time &time) {
+  rclcpp::Time result;
+  switch (resoultion_mode)
+  {
+  case MoveModel::Goal::TIME_RESOLUTION_MODE_RELATIVE_SIM_TIME:
+    result = reception_time + rclcpp::Duration(std::chrono::nanoseconds(rclcpp::Time(time).nanoseconds()));
+    break;
+  case MoveModel::Goal::TIME_RESOLUTION_MODE_SIM_TIME:
+  default:
+    result = rclcpp::Time(time);
+    break;
+  }
+
+  return result;  
 }
 
 void ModelServer::enqueue_control_callback() {
@@ -210,7 +240,7 @@ void ModelServer::control() {
         while (!entry->second.empty()) {
           const auto result = std::make_shared<MoveModel::Result>();
           result->status = MoveModel::Result::STATUS_INVALID_ID;
-          entry->second.front()->abort(result);
+          entry->second.front().goal_handle->abort(result);
           entry->second.pop();
         }
       }
@@ -225,7 +255,8 @@ void ModelServer::control_model(Stg::Model *const model,
   const rclcpp::Time now = utils::to_ros_time(world_->SimTimeNow());
 
   while (!goal_handle_queue.empty()) {
-    MoveModelGoalHandleSharedPtr goal_handle = goal_handle_queue.front();
+    MoveModelGoalHandleSharedPtr goal_handle = goal_handle_queue.front().goal_handle;
+    rclcpp::Time reception_time = goal_handle_queue.front().reception_time;
     const MoveModel::Goal::ConstSharedPtr goal = goal_handle->get_goal();
 
     if (goal_handle->is_canceling()) {
@@ -241,12 +272,12 @@ void ModelServer::control_model(Stg::Model *const model,
         break;
       }
 
-      if (now < get_end_time(*goal)) {
+      if (now < get_end_time(*goal, reception_time)) {
         rcl_duration_value_t iteration = 0;
         rclcpp::Time now_wrt_iteration = now;
         if (1 < goal->iterations) {
-          const rclcpp::Time start_time{goal->trajectory.front().header.stamp};
-          const rclcpp::Time end_time{goal->trajectory.back().header.stamp};
+          const rclcpp::Time start_time = get_time(reception_time, goal->time_resolution_mode, goal->trajectory.front().header.stamp);
+          const rclcpp::Time end_time = get_time(reception_time, goal->time_resolution_mode, goal->trajectory.back().header.stamp);
           const auto duration_per_iteration = (end_time - start_time).nanoseconds();
           iteration = (now - start_time).nanoseconds() / duration_per_iteration;
           now_wrt_iteration
@@ -255,17 +286,22 @@ void ModelServer::control_model(Stg::Model *const model,
 
         size_t trajectory_index = 0;
         for (size_t i = 1; i < (goal->trajectory.size() - 1); ++i) {
-          if (now_wrt_iteration < goal->trajectory[i].header.stamp) {
+          rclcpp::Time trajectory_time = get_time(reception_time, goal->time_resolution_mode, 
+            goal->trajectory[i].header.stamp);
+
+          if (now_wrt_iteration < trajectory_time) {
             break;
           }
           trajectory_index = i;
         }
 
         const Stg::Pose pose_a = utils::to_stage_pose(goal->trajectory[trajectory_index].pose);
-        const rclcpp::Time stamp_a{goal->trajectory[trajectory_index].header.stamp};
+        const rclcpp::Time stamp_a = get_time(reception_time, goal->time_resolution_mode, 
+          goal->trajectory[trajectory_index].header.stamp);
         const Stg::Pose pose_b
             = utils::to_stage_pose(goal->trajectory[trajectory_index + 1].pose);
-        const rclcpp::Time stamp_b{goal->trajectory[trajectory_index + 1].header.stamp};
+        const rclcpp::Time stamp_b = get_time(reception_time, goal->time_resolution_mode,
+          goal->trajectory[trajectory_index + 1].header.stamp);
         const double f_b = (now_wrt_iteration - stamp_a).seconds() / (stamp_b - stamp_a).seconds();
         const double f_a = 1.0 - f_b;
         const double yaw_diff = Stg::normalize(pose_b.a - pose_a.a);
