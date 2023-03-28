@@ -39,7 +39,7 @@ public:
   FiducialWrapper(const rclcpp::Node::SharedPtr &node, Stg::ModelFiducial *model,
                   const std::string &ns);
 
-  void publish(const std::shared_ptr<tf2_ros::TransformBroadcaster> &tf_broadcaster,
+  void publish(std::vector<geometry_msgs::msg::TransformStamped> & transforms,
                const rclcpp::Time &now) override;
 
 protected:

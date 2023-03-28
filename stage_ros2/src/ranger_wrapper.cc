@@ -46,7 +46,7 @@ RangerWrapper::RangerWrapper(const rclcpp::Node::SharedPtr &node, Stg::ModelRang
   }
 }
 
-void RangerWrapper::publish(const std::shared_ptr<tf2_ros::TransformBroadcaster> &tf_broadcaster,
+void RangerWrapper::publish(std::vector<geometry_msgs::msg::TransformStamped> & transforms,
                             const rclcpp::Time &now) {
   if (is_sonar_) {
     return;
@@ -75,7 +75,7 @@ void RangerWrapper::publish(const std::shared_ptr<tf2_ros::TransformBroadcaster>
   transform.transform.translation.y = p.y;
   transform.transform.translation.z = p.z;
   transform.transform.rotation = toMsg(q);
-  tf_broadcaster->sendTransform(transform);
+  transforms.push_back(transform);
 }
 
 }

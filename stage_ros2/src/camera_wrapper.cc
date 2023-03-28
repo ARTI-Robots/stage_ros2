@@ -48,12 +48,12 @@ CameraWrapper::CameraWrapper(const rclcpp::Node::SharedPtr &node, Stg::ModelCame
       depth_pub_(node->create_publisher<sensor_msgs::msg::Image>(private_ns_ + "depth", 10)) {
 }
 
-void CameraWrapper::publish(const std::shared_ptr<tf2_ros::TransformBroadcaster> &tf_broadcaster,
+void CameraWrapper::publish(std::vector<geometry_msgs::msg::TransformStamped> & transforms,
                             const rclcpp::Time &now) {
   publish_image(now);
   publish_depth(now);
   publish_camera_info(now);
-  publish_tf(tf_broadcaster, now);
+  publish_tf(transforms, now);
 }
 
 void CameraWrapper::publish_image(const rclcpp::Time &now) {
@@ -165,7 +165,7 @@ void CameraWrapper::publish_camera_info(const rclcpp::Time &now) {
 }
 
 void CameraWrapper::publish_tf(
-    const std::shared_ptr<tf2_ros::TransformBroadcaster> &tf_broadcaster,
+    std::vector<geometry_msgs::msg::TransformStamped> & transforms,
     const rclcpp::Time &now) {
   Stg::Pose p = model_->GetPose();
   tf2::Quaternion q;
@@ -179,7 +179,7 @@ void CameraWrapper::publish_tf(
   transform.transform.translation.y = p.y;
   transform.transform.translation.z = p.z;
   transform.transform.rotation = tf2::toMsg(q);
-  tf_broadcaster->sendTransform(transform);
+  transforms.push_back(transform);
 }
 
 }

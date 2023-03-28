@@ -115,9 +115,13 @@ private:
         clock.clock = now;
         clock_pub_->publish(clock);
 
+        std::vector<geometry_msgs::msg::TransformStamped> transforms;
+
         for (const auto& pair : robots_) {
-            pair.second->publish(tf_broadcaster_, now);
+            pair.second->publish(transforms, now);
         }
+
+        tf_broadcaster_->sendTransform(transforms);
     }
 };
 

@@ -267,7 +267,7 @@ void ModelServer::control_model(Stg::Model *const model,
       goal_handle_queue.pop();
       // Continuing with next goal, if present.
     } else {
-      if (now < goal->trajectory.front().header.stamp) {
+      if (now < get_time(reception_time, goal->time_resolution_mode, goal->trajectory.front().header.stamp)) {
         // Nothing to do here yet.
         break;
       }

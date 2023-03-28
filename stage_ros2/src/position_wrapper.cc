@@ -64,7 +64,7 @@ void PositionWrapper::wrap_sensor(Stg::Model *model) {
   }
 }
 
-void PositionWrapper::publish(const std::shared_ptr<tf2_ros::TransformBroadcaster> &tf_broadcaster,
+void PositionWrapper::publish(std::vector<geometry_msgs::msg::TransformStamped> & transforms,
                               const rclcpp::Time &now) {
   nav_msgs::msg::Odometry odom_msg;
   {
@@ -81,7 +81,7 @@ void PositionWrapper::publish(const std::shared_ptr<tf2_ros::TransformBroadcaste
     transform.header.frame_id = private_ns_ + "base_footprint";
     transform.header.stamp = now;
     transform.child_frame_id = private_ns_ + "base_link";
-    tf_broadcaster->sendTransform(transform);
+    transforms.push_back(transform);
   }
 
   geometry_msgs::msg::TransformStamped transform;
@@ -91,7 +91,7 @@ void PositionWrapper::publish(const std::shared_ptr<tf2_ros::TransformBroadcaste
   transform.transform.translation.y = odom_msg.pose.pose.position.y;
   transform.transform.translation.z = odom_msg.pose.pose.position.z;
   transform.transform.rotation = odom_msg.pose.pose.orientation;
-  tf_broadcaster->sendTransform(transform);
+  transforms.push_back(transform);
 
   nav_msgs::msg::Odometry ground_truth_msg;
   ground_truth_msg.header = odom_msg.header;
@@ -100,7 +100,7 @@ void PositionWrapper::publish(const std::shared_ptr<tf2_ros::TransformBroadcaste
   ground_truth_pub_->publish(ground_truth_msg);
 
   for (const auto &sensor : sensors_) {
-    sensor->publish(tf_broadcaster, now);
+    sensor->publish(transforms, now);
   }
 }
 

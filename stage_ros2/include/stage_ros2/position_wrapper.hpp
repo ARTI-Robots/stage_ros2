@@ -41,7 +41,7 @@ public:
 
   void wrap_sensor(Stg::Model *model);
 
-  void publish(const std::shared_ptr<tf2_ros::TransformBroadcaster> &tf_broadcaster,
+  void publish(std::vector<geometry_msgs::msg::TransformStamped> & transforms,
                const rclcpp::Time &now) override;
 
 protected:

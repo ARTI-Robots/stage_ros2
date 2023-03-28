@@ -36,7 +36,7 @@ public:
   ModelWrapper(Stg::Model *model, const std::string& ns);
   virtual ~ModelWrapper();
 
-  virtual void publish(const std::shared_ptr<tf2_ros::TransformBroadcaster> &tf_broadcaster,
+  virtual void publish(std::vector<geometry_msgs::msg::TransformStamped> & transforms,
                        const rclcpp::Time &now) = 0;
 
 protected:

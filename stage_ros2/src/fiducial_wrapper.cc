@@ -44,7 +44,7 @@ FiducialWrapper::FiducialWrapper(const rclcpp::Node::SharedPtr &node, Stg::Model
           private_ns_ + "observations", 10)) {
 }
 
-void FiducialWrapper::publish(const std::shared_ptr<tf2_ros::TransformBroadcaster> &tf_broadcaster,
+void FiducialWrapper::publish(std::vector<geometry_msgs::msg::TransformStamped> & transforms,
                               const rclcpp::Time &now) {
   const auto &fiducials = model_->GetFiducials();
   mrpt_msgs::msg::ObservationRangeBearing msg;
@@ -75,7 +75,7 @@ void FiducialWrapper::publish(const std::shared_ptr<tf2_ros::TransformBroadcaste
   transform.transform.translation.y = p.y;
   transform.transform.translation.z = p.z;
   transform.transform.rotation = toMsg(q);
-  tf_broadcaster->sendTransform(transform);
+  transforms.push_back(transform);
 }
 
 }
