@@ -40,6 +40,11 @@ rclcpp::Time to_ros_time(Stg::usec_t stage_time) {
   return rclcpp::Time{static_cast<int64_t>(stage_time * 1000), RCL_ROS_TIME};
 }
 
+rclcpp::Duration to_ros_duration(uint64_t stage_duration) {
+  return rclcpp::Duration{
+      rcl_duration_t{static_cast<rcl_duration_value_t>(stage_duration * 1000)}};
+}
+
 Stg::Pose to_stage_pose(const geometry_msgs::msg::Pose &pose) {
   return {pose.position.x, pose.position.y, pose.position.z, tf2::getYaw(pose.orientation)};
 }
@@ -87,8 +92,7 @@ Stg::Ancestor *get_parent(const Stg::Model *model) {
   return model->GetWorld();
 }
 
-std::string sanitize_stage_name(std::string stage_name)
-{
+std::string sanitize_stage_name(std::string stage_name) {
   const auto pos_dot = stage_name.find('.');
   if (pos_dot != std::string::npos) {
     stage_name.erase(0, pos_dot + 1);

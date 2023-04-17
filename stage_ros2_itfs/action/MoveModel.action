@@ -3,7 +3,7 @@
 ## ID of the model to move.
 string id
 
-## The trajectory to move the model along to. The headers' stamps defines the time at which each 
+## The trajectory to move the model along to. The headers' stamps defines the time at which each
 ## pose shall be reached. The detail how to resolve the time stamp to the simulation time is defined
 ## according to the time resolution mode set The frame_ids are ignored, all coordinates are in the
 ## simulation frame.
@@ -18,6 +18,11 @@ uint8 time_resolution_mode 0
 ## Number of iterations. Repeat indefinitely if set to the maximum possible value.
 uint32 ITERATIONS_INFINITE = 4294967295
 uint32 iterations 1
+
+uint8 COLLISION_MODE_IGNORE = 0
+uint8 COLLISION_MODE_PAUSE = 1
+uint8 COLLISION_MODE_ABORT = 2
+uint8 collision_mode 0
 ---
 # Result:
 
@@ -26,6 +31,8 @@ uint8 STATUS_CANCELED = 1
 uint8 STATUS_INVALID_ID = 2
 uint8 STATUS_INVALID_TRAJECTORY = 3
 uint8 STATUS_OVERLAPPING_TRAJECTORY = 4
+uint8 STATUS_INVALID_VALUE = 5
+uint8 STATUS_IN_COLLISION = 6
 uint8 status
 ---
 # Feedback:
