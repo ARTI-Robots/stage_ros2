@@ -34,3 +34,7 @@
 # IDE generated files
 .idea/
 cmake-build-debug/
+
+# Compiled script files
+__pycache__/
+*.pyc

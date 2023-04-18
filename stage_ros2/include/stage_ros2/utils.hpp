@@ -29,6 +29,7 @@
 #include <geometry_msgs/msg/transform.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 #include <geometry_msgs/msg/vector3.hpp>
+#include <rclcpp/duration.hpp>
 #include <rclcpp/time.hpp>
 #include <stage_ros2/stage_forward_declarations.hpp>
 #include <std_msgs/msg/color_rgba.hpp>
@@ -38,6 +39,7 @@ namespace stage_ros2 {
 namespace utils {
 
 rclcpp::Time to_ros_time(uint64_t stage_time);
+rclcpp::Duration to_ros_duration(uint64_t stage_duration);
 
 Stg::Pose to_stage_pose(const geometry_msgs::msg::Pose &pose);
 

@@ -119,7 +119,8 @@ class Forklift:
                 PoseStamped(header=Header(stamp=Time(sec=37)), pose=self.P6),
                 PoseStamped(header=Header(stamp=Time(sec=47)), pose=self.P7),
                 PoseStamped(header=Header(stamp=Time(sec=49)), pose=self.P0),
-            ], iterations=MoveModel.Goal.ITERATIONS_INFINITE), self.process_feedback)
+            ], iterations=MoveModel.Goal.ITERATIONS_INFINITE, collision_mode=MoveModel.Goal.COLLISION_MODE_PAUSE),
+            self.process_feedback)
         rclpy.spin_until_future_complete(node, future_response)
         self.move_model_goal_handle = future_response.result()  # type: ClientGoalHandle
         if self.move_model_goal_handle.accepted:

@@ -56,30 +56,55 @@ model
   gui_move 0
 )
 
-model
+define door model
 (
-  name "door_a"
-  color "azure"
   size [ 0.2 2.1 1.9 ]
-  pose [ 12.75 12.5 0.0 0.0 ]
   gui_move 0
 )
 
-model
+define landmark model
 (
-  name "door_b"
-  color "beige"
-  size [ 0.2 2.1 1.9 ]
-  pose [ 12.75 2.5 0.0 0.0 ]
+  color "white"
+  size [ 0.1 0.1 0.4 ]
   gui_move 0
+  fiducial_return 1
 )
 
-model
+define row_of_landmarks model
 (
-  name "forklift"
+  noblocks 1  # model has no geometry
+  gui_move 0
+  stack_children 0
+
+  landmark
+  (
+    pose [ 0.5 0.0 0.0 45.0 ]
+    gui_move 0
+  )
+
+  landmark
+  (
+    pose [ 12.5 0.0 0.0 45.0 ]
+    gui_move 0
+  )
+
+  landmark
+  (
+    pose [ 13.0 0.0 0.0 45.0 ]
+    gui_move 0
+  )
+
+  landmark
+  (
+    pose [ 19.5 0.0 0.0 45.0 ]
+    gui_move 0
+  )
+)
+
+define forklift model
+(
   color "orange"
   size [ 1.5 1.0 1.0 ]
-  pose [ 16.0 12.5 0.0 180.0 ]
   origin [ -0.5 0.0 0.0 0.0 ]
   stack_children 0
 
@@ -112,13 +137,26 @@ define lidar ranger
 (
   sensor
   (
-    range [ 0.5 20.0 ]
+    range [ 0.5 10.0 ]
     fov 270.0
     samples 818
   )
 
   color "black"
   size [ 0.06 0.15 0.03 ]
+)
+
+define landmark_detector fiducial
+(
+  # fiducial properties:
+  range_min 0.5
+  range_max 10.0
+  range_max_id 5.0
+  fov 270.0
+  ignore_zloc 0
+
+  # model properties:
+  size [ 0.1 0.1 0.1 ]
 )
 
 define agv position
@@ -139,11 +177,58 @@ define agv position
     pose [ 0.6 0.45 0.25 45.0 ]
   )
 
+  landmark_detector
+  (
+    name "landmark_detector_front"
+    pose [ 0.6 0.45 0.25 45.0 ]
+  )
+
   lidar
   (
     name "lidar_back"
     pose [ -0.6 -0.45 0.25 -135.0 ]
   )
+
+  landmark_detector
+  (
+    name "landmark_detector_back"
+    pose [ -0.6 -0.45 0.25 -135.0 ]
+  )
+)
+
+door
+(
+  name "door_a"
+  color "azure"
+  pose [ 12.75 12.5 0.0 0.0 ]
+)
+
+door
+(
+  name "door_b"
+  color "beige"
+  pose [ 12.75 2.5 0.0 0.0 ]
+)
+
+row_of_landmarks
+(
+  pose [ 0.0 14.5 0.0 0.0 ]
+)
+
+row_of_landmarks
+(
+  pose [ 0.0 7.5 0.0 0.0 ]
+)
+
+row_of_landmarks
+(
+  pose [ 0.0 0.5 0.0 0.0 ]
+)
+
+forklift
+(
+  name "forklift"
+  pose [ 16.0 12.5 0.0 180.0 ]
 )
 
 agv(
