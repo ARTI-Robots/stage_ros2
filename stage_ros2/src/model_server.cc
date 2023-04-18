@@ -131,6 +131,16 @@ void ModelServer::move_model(const MoveModelGoalHandleSharedPtr &goal_handle) {
     return;
   }
 
+  if (goal->interpolation_mode != MoveModel::Goal::INTERPOLATION_MODE_LINEAR
+      && goal->interpolation_mode != MoveModel::Goal::INTERPOLATION_MODE_CUBIC_SPLINE) {
+    RCLCPP_ERROR(node_->get_logger(),
+                 "received invalid interpolation mode for model '%s'", goal->id.c_str());
+    const auto result = std::make_shared<MoveModel::Result>();
+    result->status = MoveModel::Result::STATUS_INVALID_VALUE;
+    goal_handle->abort(result);
+    return;
+  }
+
   if (!validate_trajectory(*goal)) {
     const auto result = std::make_shared<MoveModel::Result>();
     result->status = MoveModel::Result::STATUS_INVALID_TRAJECTORY;
@@ -303,36 +313,31 @@ void ModelServer::control_model(Stg::Model *const model,
 
         const Stg::Pose old_pose = model->GetPose();
 
-        switch (goal->interpolation_mode) {
-          case MoveModel::Goal::INTERPOLATION_MODE_LINEAR: {
-            const double yaw_diff = Stg::normalize(pose_b.a - pose_a.a);
+        if (goal->interpolation_mode == MoveModel::Goal::INTERPOLATION_MODE_CUBIC_SPLINE
+            && (1e-3 <= std::max(std::abs(pose_b.x - pose_a.x), std::abs(pose_b.y - pose_a.y)))) {
+          Eigen::Array22d points;
+          points.col(0) << pose_a.x, pose_a.y;
+          points.col(1) << pose_b.x, pose_b.y;
+          Eigen::Array22d derivatives;
+          derivatives.col(0) << std::cos(pose_a.a), std::sin(pose_a.a);
+          derivatives.col(1) << std::cos(pose_b.a), std::sin(pose_b.a);
+          derivatives *= std::hypot(pose_b.x - pose_a.x, pose_b.y - pose_a.y);
+          Eigen::Array2i derivative_indices{0, 1};
+          const auto spline
+              = Eigen::SplineFitting<Eigen::Spline2d>::InterpolateWithDerivatives(
+                  points, derivatives, derivative_indices, 3);
+          const auto results = spline.derivatives<1>(f_b);
 
-            model->SetPose(Stg::Pose{pose_a.x * f_a + pose_b.x * f_b,
-                                     pose_a.y * f_a + pose_b.y * f_b,
-                                     pose_a.z * f_a + pose_b.z * f_b,
-                                     pose_a.a + yaw_diff * f_b});
-            break;
-          }
+          model->SetPose(Stg::Pose{results.col(0).x(), results.col(0).y(),
+                                   pose_a.z * f_a + pose_b.z * f_b,
+                                   std::atan2(results.col(1).y(), results.col(1).x())});
+        } else {
+          const double yaw_diff = Stg::normalize(pose_b.a - pose_a.a);
 
-          case MoveModel::Goal::INTERPOLATION_MODE_CUBIC_SPLINE: {
-            Eigen::Array22d points;
-            points.col(0) << pose_a.x, pose_a.y;
-            points.col(1) << pose_b.x, pose_b.y;
-            Eigen::Array22d derivatives;
-            derivatives.col(0) << std::cos(pose_a.a), std::sin(pose_a.a);
-            derivatives.col(1) << std::cos(pose_b.a), std::sin(pose_b.a);
-            derivatives *= std::hypot(pose_b.x - pose_a.x, pose_b.y - pose_a.y);
-            Eigen::Array2i derivative_indices{0, 1};
-            const auto spline
-                = Eigen::SplineFitting<Eigen::Spline2d>::InterpolateWithDerivatives(
-                    points, derivatives, derivative_indices, 3);
-            const auto results = spline.derivatives<1>(f_b);
-
-            model->SetPose(Stg::Pose{results.col(0).x(), results.col(0).y(),
-                                     pose_a.z * f_a + pose_b.z * f_b,
-                                     std::atan2(results.col(1).y(), results.col(1).x())});
-            break;
-          }
+          model->SetPose(Stg::Pose{pose_a.x * f_a + pose_b.x * f_b,
+                                   pose_a.y * f_a + pose_b.y * f_b,
+                                   pose_a.z * f_a + pose_b.z * f_b,
+                                   pose_a.a + yaw_diff * f_b});
         }
 
         if (goal->collision_mode != MoveModel::Goal::COLLISION_MODE_IGNORE

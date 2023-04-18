@@ -96,8 +96,8 @@ class SlidingDoor:
 
 class Forklift:
     P0 = Pose(position=Point(x=15.0, y=12.5), orientation=create_quaternion_from_yaw_deg(180))
-    P1 = Pose(position=Point(x=7.0, y=12.5), orientation=create_quaternion_from_yaw_deg(180))
-    P2 = Pose(position=Point(x=6.0, y=11.5), orientation=create_quaternion_from_yaw_deg(-90))
+    P1 = Pose(position=Point(x=6.0, y=12.5), orientation=create_quaternion_from_yaw_deg(180))
+    P2 = Pose(position=Point(x=6.0, y=12.5), orientation=create_quaternion_from_yaw_deg(-90))
     P3 = Pose(position=Point(x=6.0, y=3.5), orientation=create_quaternion_from_yaw_deg(-90))
     P4 = Pose(position=Point(x=7.0, y=2.5), orientation=create_quaternion_from_yaw_deg(0))
     P5 = Pose(position=Point(x=15.0, y=2.5), orientation=create_quaternion_from_yaw_deg(0))
