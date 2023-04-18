@@ -23,6 +23,10 @@ uint8 COLLISION_MODE_IGNORE = 0
 uint8 COLLISION_MODE_PAUSE = 1
 uint8 COLLISION_MODE_ABORT = 2
 uint8 collision_mode 0
+
+uint8 INTERPOLATION_MODE_LINEAR = 0
+uint8 INTERPOLATION_MODE_CUBIC_SPLINE = 1
+uint8 interpolation_mode 0
 ---
 # Result:
 
