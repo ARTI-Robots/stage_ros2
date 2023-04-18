@@ -29,6 +29,8 @@
     <depend>tf2</depend>
     <depend>tf2_ros</depend>
     <depend>tf2_geometry_msgs</depend>
+    <depend>backward_ros</depend>
+
     <!--
         colcon's build order resolution algorithm is case-sensitive when handling package names.
         Because Stage is pure CMake project, colcon uses its project name (which is `Stage`)

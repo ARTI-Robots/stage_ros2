@@ -39,6 +39,7 @@ find_package(tf2_geometry_msgs REQUIRED)
 # Both works but they result in different variable being set `Stage_DIR` vs `stage_DIR`,
 # and variable names are case-sensitive. Stage's stage-config.cmake file incorrectly uses ${stage_DIR}.
 find_package(stage REQUIRED)
+find_package(backward_ros REQUIRED)
 
 # build
 add_executable(${PROJECT_NAME}
