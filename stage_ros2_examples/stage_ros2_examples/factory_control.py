@@ -95,14 +95,14 @@ class SlidingDoor:
 
 
 class Forklift:
-    P0 = Pose(position=Point(x=16.0, y=12.5), orientation=create_quaternion_from_yaw_deg(180))
+    P0 = Pose(position=Point(x=15.0, y=12.5), orientation=create_quaternion_from_yaw_deg(180))
     P1 = Pose(position=Point(x=6.0, y=12.5), orientation=create_quaternion_from_yaw_deg(180))
     P2 = Pose(position=Point(x=6.0, y=12.5), orientation=create_quaternion_from_yaw_deg(-90))
-    P3 = Pose(position=Point(x=6.0, y=2.5), orientation=create_quaternion_from_yaw_deg(-90))
-    P4 = Pose(position=Point(x=6.0, y=2.5), orientation=create_quaternion_from_yaw_deg(0))
-    P5 = Pose(position=Point(x=16.0, y=2.5), orientation=create_quaternion_from_yaw_deg(0))
-    P6 = Pose(position=Point(x=16.0, y=2.5), orientation=create_quaternion_from_yaw_deg(90))
-    P7 = Pose(position=Point(x=16.0, y=12.5), orientation=create_quaternion_from_yaw_deg(90))
+    P3 = Pose(position=Point(x=6.0, y=3.5), orientation=create_quaternion_from_yaw_deg(-90))
+    P4 = Pose(position=Point(x=7.0, y=2.5), orientation=create_quaternion_from_yaw_deg(0))
+    P5 = Pose(position=Point(x=15.0, y=2.5), orientation=create_quaternion_from_yaw_deg(0))
+    P6 = Pose(position=Point(x=16.0, y=3.5), orientation=create_quaternion_from_yaw_deg(90))
+    P7 = Pose(position=Point(x=16.0, y=11.5), orientation=create_quaternion_from_yaw_deg(90))
 
     def __init__(self, node: Node, id_: str, move_model_client: ActionClient):
         self.id = id_
@@ -119,7 +119,8 @@ class Forklift:
                 PoseStamped(header=Header(stamp=Time(sec=37)), pose=self.P6),
                 PoseStamped(header=Header(stamp=Time(sec=47)), pose=self.P7),
                 PoseStamped(header=Header(stamp=Time(sec=49)), pose=self.P0),
-            ], iterations=MoveModel.Goal.ITERATIONS_INFINITE, collision_mode=MoveModel.Goal.COLLISION_MODE_PAUSE),
+            ], iterations=MoveModel.Goal.ITERATIONS_INFINITE, collision_mode=MoveModel.Goal.COLLISION_MODE_PAUSE,
+            interpolation_mode=MoveModel.Goal.INTERPOLATION_MODE_CUBIC_SPLINE),
             self.process_feedback)
         rclpy.spin_until_future_complete(node, future_response)
         self.move_model_goal_handle = future_response.result()  # type: ClientGoalHandle

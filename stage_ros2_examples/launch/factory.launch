@@ -1,0 +1,10 @@
+<launch>
+    <arg name="world" default="$(find-pkg-share stage_ros2_examples)/worlds/factory.world"
+         description="path to Stage world file"/>
+
+    <node name="stage_ros2" pkg="stage_ros2" exec="stage_ros2">
+        <param name="world" type="str" value="$(var world)"/>
+    </node>
+
+    <node name="factory_control" pkg="stage_ros2_examples" exec="factory_control"/>
+</launch>

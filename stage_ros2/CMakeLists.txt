@@ -24,6 +24,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rcutils REQUIRED)
 find_package(cv_bridge REQUIRED)
+find_package(Eigen3 REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(mrpt_msgs REQUIRED)
@@ -55,10 +56,13 @@ add_executable(${PROJECT_NAME}
 
 # Add Stage dependency (the STAGE_* variables are defined by stage-config.cmake),
 # which was found by `find_package(stage REQUIRED)`.
-target_include_directories(${PROJECT_NAME}
-    PRIVATE ${STAGE_INCLUDE_DIRS} include)
-target_link_libraries(${PROJECT_NAME}
-    PRIVATE ${STAGE_LIBRARIES})
+target_include_directories(${PROJECT_NAME} PRIVATE
+    ${Eigen3_INCLUDE_DIRS}
+    ${STAGE_INCLUDE_DIRS}
+    include)
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    ${Eigen3_LIBRARIES}
+    ${STAGE_LIBRARIES})
 # Add dependencies on standard ROS 2 packages using ament.
 ament_target_dependencies(${PROJECT_NAME}
     PUBLIC
