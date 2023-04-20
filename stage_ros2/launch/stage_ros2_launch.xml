@@ -1,0 +1,8 @@
+<launch>
+    <arg name="world" description="path to Stage world file"/>
+    <arg name="name" default="stage_ros2" description="node name"/>
+
+    <node name="$(var name)" pkg="stage_ros2" exec="stage_ros2">
+        <param name="world" type="str" value="$(var world)"/>
+    </node>
+</launch>
