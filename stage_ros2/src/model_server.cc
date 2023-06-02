@@ -215,13 +215,25 @@ bool ModelServer::validate_trajectory(const MoveModel::Goal &move_model_goal) co
   }
 
   if (trajectory.size() > 1) {
+    bool trajectory_valid = true;
     for (size_t i = 0; i < (trajectory.size() - 1); ++i) {
       if (rclcpp::Time{trajectory[i + 1].header.stamp} <= trajectory[i].header.stamp) {
         RCLCPP_ERROR(node_->get_logger(),
                     "trajectory for model '%s' does not have strictly increasing timestamps",
                     move_model_goal.id.c_str());
-        return false;
+        trajectory_valid = false;
       }
+    }
+
+    if (!trajectory_valid) {
+      for (const auto &pose : trajectory) {
+        RCLCPP_ERROR_STREAM(node_->get_logger(),
+                    "Pose position x: " << pose.pose.position.x << " y: " << pose.pose.position.y << 
+                    " orientation z: " << pose.pose.orientation.z << " w: " << pose.pose.orientation.w << 
+                    " timestamp seconds: " << pose.header.stamp.sec << " nanosec: " << pose.header.stamp.nanosec);
+      }
+
+      return trajectory_valid;
     }
   }
 
