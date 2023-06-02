@@ -85,4 +85,37 @@ ament_target_dependencies(${PROJECT_NAME}
 install(TARGETS ${PROJECT_NAME}
     DESTINATION lib/${PROJECT_NAME})
 
+# build
+add_executable(${PROJECT_NAME}_converting_landmarks
+    src/converting_landmarks.cpp)
+
+# Add Stage dependency (the STAGE_* variables are defined by stage-config.cmake),
+# which was found by `find_package(stage REQUIRED)`.
+target_include_directories(${PROJECT_NAME}_converting_landmarks PRIVATE
+    ${STAGE_INCLUDE_DIRS}
+    include)
+target_link_libraries(${PROJECT_NAME}_converting_landmarks PRIVATE
+    ${STAGE_LIBRARIES})
+# Add dependencies on standard ROS 2 packages using ament.
+ament_target_dependencies(${PROJECT_NAME}_converting_landmarks
+    PUBLIC
+    rclcpp
+    rclcpp_action
+    rcutils
+    cv_bridge
+    image_transport
+    geometry_msgs
+    mrpt_msgs
+    nav_msgs
+    sensor_msgs
+    stage_ros2_itfs
+    std_msgs
+    std_srvs
+    tf2
+    tf2_ros
+    tf2_geometry_msgs)
+
+install(TARGETS ${PROJECT_NAME}_converting_landmarks
+    DESTINATION lib/${PROJECT_NAME})
+
 ament_package()
