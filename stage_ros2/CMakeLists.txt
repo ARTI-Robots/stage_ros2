@@ -118,4 +118,8 @@ ament_target_dependencies(${PROJECT_NAME}_converting_landmarks
 install(TARGETS ${PROJECT_NAME}_converting_landmarks
     DESTINATION lib/${PROJECT_NAME})
 
+# Install launch files:
+install(DIRECTORY launch
+    DESTINATION share/${PROJECT_NAME}/)
+
 ament_package()

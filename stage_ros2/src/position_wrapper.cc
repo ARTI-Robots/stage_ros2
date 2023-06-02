@@ -24,6 +24,7 @@
  */
 
 #include <stage_ros2/position_wrapper.hpp>
+#include <chrono>
 #include <stage_ros2/camera_wrapper.hpp>
 #include <stage_ros2/fiducial_wrapper.hpp>
 #include <stage_ros2/ranger_wrapper.hpp>
@@ -37,6 +38,8 @@
 #endif
 #include <tf2/LinearMath/Quaternion.h>
 #include <stage.hh>
+
+using namespace std::chrono_literals;
 
 namespace stage_ros2 {
 
@@ -66,6 +69,10 @@ void PositionWrapper::wrap_sensor(Stg::Model *model) {
 
 void PositionWrapper::publish(std::vector<geometry_msgs::msg::TransformStamped> & transforms,
                               const rclcpp::Time &now) {
+  if (command_timeout_ < now) {
+    model_->SetSpeed(0, 0, 0);
+  }
+
   nav_msgs::msg::Odometry odom_msg;
   {
     odom_msg.header.frame_id = private_ns_ + "odom";
@@ -105,6 +112,7 @@ void PositionWrapper::publish(std::vector<geometry_msgs::msg::TransformStamped> 
 }
 
 void PositionWrapper::cmd_vel_callback(const geometry_msgs::msg::Twist::ConstSharedPtr &msg) {
+  command_timeout_ = utils::to_ros_time(model_->GetWorld()->SimTimeNow()) + 1s;
   model_->SetSpeed(msg->linear.x, msg->linear.y, msg->angular.z);
 }
 
