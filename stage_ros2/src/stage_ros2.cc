@@ -82,6 +82,7 @@ public:
 
     ~StageWrapper() {
         rclcpp::shutdown();
+        ros2_thread_->join();
     }
 
 private:

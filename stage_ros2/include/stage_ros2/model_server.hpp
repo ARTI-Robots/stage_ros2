@@ -64,6 +64,8 @@ protected:
   using MoveModelGoalHandleQueue = std::queue<MoveModelGoalHandleQueueEntry>;
   using MoveModelGoalHandleQueueMap = std::map<std::string, MoveModelGoalHandleQueue>;
 
+  static rcl_action_server_options_t make_action_server_options();
+
   void create_model(const CreateModel::Request::ConstSharedPtr &request,
                     const CreateModel::Response::SharedPtr &response);
   void remove_model(const RemoveModel::Request::ConstSharedPtr &request,

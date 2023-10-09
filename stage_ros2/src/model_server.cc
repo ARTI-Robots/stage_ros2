@@ -50,8 +50,18 @@ ModelServer::ModelServer(rclcpp::Node::SharedPtr node, std::shared_ptr<Stg::Worl
           node_, node_->get_effective_namespace() + "/move_model",
           [](...) { return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE; },
           [](...) { return rclcpp_action::CancelResponse::ACCEPT; },
-          std::bind(&ModelServer::move_model, this, phs::_1))) {
+          std::bind(&ModelServer::move_model, this, phs::_1), make_action_server_options())) {
   enqueue_control_callback();
+}
+
+rcl_action_server_options_t ModelServer::make_action_server_options() {
+  rcl_action_server_options_t action_server_options = rcl_action_server_get_default_options();
+  action_server_options.goal_service_qos.history = RMW_QOS_POLICY_HISTORY_KEEP_ALL;
+  action_server_options.cancel_service_qos.history = RMW_QOS_POLICY_HISTORY_KEEP_ALL;
+  action_server_options.result_service_qos.history = RMW_QOS_POLICY_HISTORY_KEEP_ALL;
+  action_server_options.feedback_topic_qos.history = RMW_QOS_POLICY_HISTORY_KEEP_ALL;
+  action_server_options.status_topic_qos.history = RMW_QOS_POLICY_HISTORY_KEEP_ALL;
+  return action_server_options;
 }
 
 void ModelServer::create_model(
@@ -228,8 +238,8 @@ bool ModelServer::validate_trajectory(const MoveModel::Goal &move_model_goal) co
     if (!trajectory_valid) {
       for (const auto &pose : trajectory) {
         RCLCPP_ERROR_STREAM(node_->get_logger(),
-                    "Pose position x: " << pose.pose.position.x << " y: " << pose.pose.position.y << 
-                    " orientation z: " << pose.pose.orientation.z << " w: " << pose.pose.orientation.w << 
+                    "Pose position x: " << pose.pose.position.x << " y: " << pose.pose.position.y <<
+                    " orientation z: " << pose.pose.orientation.z << " w: " << pose.pose.orientation.w <<
                     " timestamp seconds: " << pose.header.stamp.sec << " nanosec: " << pose.header.stamp.nanosec);
       }
 
